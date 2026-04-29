@@ -1,0 +1,43 @@
+{
+  "name": "devmind",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "devmind:capture": "tsx scripts/capture-commit.ts",
+    "devmind:install-hook": "tsx scripts/install-hook.ts",
+    "devmind:cursor": "tsx scripts/generate-cursor-context.ts",
+    "devmind:seed": "tsx scripts/seed-profile.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@tailwindcss/postcss": "^4.2.4",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.4.2",
+    "gray-matter": "^4.0.3",
+    "next": "16.2.4",
+    "pg": "^8.20.0",
+    "prisma": "^7.8.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "simple-git": "^3.36.0",
+    "tailwindcss": "^4.2.4",
+    "tsx": "^4.21.0",
+    "zod": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "typescript": "^5"
+  }
+}

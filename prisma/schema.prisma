@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CommitSource {
+  MANUAL
+  GIT_HOOK
+  IMPORT
+}
+
+enum EvidenceSource {
+  USER_CONFIRMED
+  CV
+  COMMIT
+  OBSIDIAN
+  INFERRED
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  name        String   @default("João Magalhães")
+  role        String   @default("Software Engineer")
+  email       String?  @default("jptmagalhaes2001@gmail.com")
+  portfolio   String?  @default("https://magalhaescode.netlify.app/")
+  linkedin    String?  @default("https://www.linkedin.com/in/joaomagalhaes2001")
+  preferences Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Skill {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  years       Int?
+  confidence  Float          @default(1)
+  source      EvidenceSource @default(USER_CONFIRMED)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  evidence    SkillEvidence[]
+}
+
+model Repository {
+  id          String   @id @default(cuid())
+  name        String
+  path        String   @unique
+  description String?
+  mainBranch  String?
+  stack       Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  commits     Commit[]
+  decisions   Decision[]
+}
+
+model Commit {
+  id          String       @id @default(cuid())
+  repoId      String
+  repository  Repository   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  hash        String
+  shortHash   String
+  branch      String?
+  message     String
+  authorName  String?
+  authorEmail String?
+  committedAt DateTime
+  files       Json         @default("[]")
+  diffSummary String?
+  aiSummary   String?
+  tags        Json         @default("[]")
+  source      CommitSource @default(MANUAL)
+  createdAt   DateTime     @default(now())
+  evidence    SkillEvidence[]
+
+  @@unique([repoId, hash])
+  @@index([committedAt])
+}
+
+model Decision {
+  id          String      @id @default(cuid())
+  repoId      String?
+  repository  Repository? @relation(fields: [repoId], references: [id], onDelete: SetNull)
+  title       String
+  description String
+  source      EvidenceSource @default(INFERRED)
+  createdAt   DateTime    @default(now())
+}
+
+model SkillEvidence {
+  id        String   @id @default(cuid())
+  skillId   String
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  commitId  String?
+  commit    Commit?  @relation(fields: [commitId], references: [id], onDelete: SetNull)
+  evidence  String
+  source    EvidenceSource @default(COMMIT)
+  createdAt DateTime @default(now())
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

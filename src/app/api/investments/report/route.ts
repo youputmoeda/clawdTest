@@ -4,9 +4,19 @@ import { normalisePersonId } from "@/lib/investments/people";
 import { generateInvestmentReport } from "@/lib/investments/reports/generate-report";
 import { appendReportHistory } from "@/lib/investments/reports/history";
 
+const boolish = z.preprocess((value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(v)) return true;
+    if (["false", "0", "no", "off", ""].includes(v)) return false;
+  }
+  return value;
+}, z.boolean());
+
 const schema = z.object({
   session: z.enum(["europe-open", "us-open"]).default("europe-open"),
-  saveHistory: z.coerce.boolean().default(true),
+  saveHistory: boolish.default(true),
   personId: z.string().optional(),
 });
 

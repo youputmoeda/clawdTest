@@ -138,13 +138,14 @@ export default function InvestmentsPage() {
   const [holdingsJson, setHoldingsJson] = useState("[]");
   const [csvImport, setCsvImport] = useState("");
 
-  async function loadReport(nextSession = session) {
+  async function loadReport(nextSession = session, saveHistory = false) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/investments/report?session=${nextSession}&personId=${personId}`, { cache: "no-store" });
+      const res = await fetch(`/api/investments/report?session=${nextSession}&personId=${personId}&saveHistory=${saveHistory}`, { cache: "no-store" });
       const data = await res.json();
       setReport(data);
       setEmailPreview("");
+      if (saveHistory) await loadPerformanceHistory();
     } finally {
       setLoading(false);
     }
@@ -303,7 +304,7 @@ export default function InvestmentsPage() {
             >
               {t.usOpen}
             </button>
-            <button onClick={() => loadReport()} className="rounded-xl border border-zinc-800 bg-zinc-950 px-5 py-3 font-semibold text-zinc-300">
+            <button onClick={() => loadReport(session, true)} className="rounded-xl border border-zinc-800 bg-zinc-950 px-5 py-3 font-semibold text-zinc-300">
               {loading ? t.generating : t.generateReport}
             </button>
             <button onClick={previewEmail} className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 font-semibold text-emerald-200">

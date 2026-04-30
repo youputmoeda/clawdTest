@@ -71,6 +71,10 @@ export async function appendReportHistory(report: InvestmentReport, personId?: s
   return next;
 }
 
+export async function clearReportHistory(personId?: string) {
+  await writeJsonSetting(historyKey(personId), []);
+}
+
 export async function evaluateReportPerformance(personId?: string) {
   const history = await loadReportHistory(personId);
   const tickers = Array.from(new Set(history.flatMap((entry) => entry.topIdeas.map((idea) => idea.ticker))));

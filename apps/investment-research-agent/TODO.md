@@ -17,4 +17,5 @@
 - [x] Add allocation analysis and score adjustments
 - [x] Add portfolio import helper for DEGIRO exports
 - [x] Add visual holdings editor
+- [x] Add monthly allocation plan
 - [ ] Track historical report performance

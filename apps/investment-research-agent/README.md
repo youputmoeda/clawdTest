@@ -23,6 +23,7 @@ Local investment research dashboard and scheduled report generator for a Portuga
 - Allocation-aware scoring adjustments
 - Visual holdings editor
 - Basic DEGIRO CSV paste/import helper
+- Monthly allocation plan based on contribution, portfolio exposure, emergency fund flag, and concentration caps
 
 ## Run
 

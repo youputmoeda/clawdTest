@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { parseDegiroPortfolioCsv } from "@/lib/investments/degiro";
+import type { AllocationPlan } from "@/lib/investments/allocation";
 import type { Holding, InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
 const profileLabels: Record<RiskProfile, string> = {
@@ -129,6 +130,7 @@ export default function InvestmentsPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [emailPreview, setEmailPreview] = useState<string>("");
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
+  const [allocationPlan, setAllocationPlan] = useState<AllocationPlan | null>(null);
   const [holdingsJson, setHoldingsJson] = useState("[]");
   const [csvImport, setCsvImport] = useState("");
 
@@ -150,11 +152,18 @@ export default function InvestmentsPage() {
     setEmailPreview(data.email.text);
   }
 
+  async function loadAllocationPlan() {
+    const res = await fetch("/api/investments/allocation-plan", { cache: "no-store" });
+    const data = await res.json();
+    setAllocationPlan(data.plan);
+  }
+
   async function loadSettings() {
     const res = await fetch("/api/investments/settings", { cache: "no-store" });
     const data = await res.json();
     setSettings(data.settings);
     setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
+    await loadAllocationPlan();
   }
 
   async function saveSettings() {
@@ -170,6 +179,7 @@ export default function InvestmentsPage() {
       const data = await res.json();
       setSettings(data.settings);
       setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
+      await loadAllocationPlan();
       await loadReport(session);
     } finally {
       setSavingSettings(false);
@@ -341,6 +351,45 @@ export default function InvestmentsPage() {
               <summary className="cursor-pointer text-sm font-semibold text-zinc-300">JSON avançado</summary>
               <textarea className="mt-3 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} />
             </details>
+          </section>
+        )}
+
+        {allocationPlan && (
+          <section className="rounded-3xl border border-emerald-500/30 bg-emerald-950/30 p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">Monthly Allocation Plan</p>
+                <h2 className="mt-1 text-3xl font-black">Plano para €{allocationPlan.monthlyContribution.toFixed(0)}/mês</h2>
+                <p className="mt-2 max-w-4xl text-zinc-300">{allocationPlan.summary}</p>
+              </div>
+              <button onClick={loadAllocationPlan} className="rounded-xl border border-emerald-500/40 px-4 py-3 text-sm font-semibold text-emerald-200">Recalcular plano</button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              {allocationPlan.buckets.map((bucket) => (
+                <article key={bucket.id} className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{bucket.percent}%</p>
+                  <h3 className="mt-1 text-2xl font-bold text-zinc-50">€{bucket.amount.toFixed(2)}</h3>
+                  <p className="text-sm font-semibold text-emerald-300">{bucket.label}</p>
+                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-400">
+                    {bucket.rationale.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                  <p className="mt-4 text-sm font-semibold text-zinc-200">Preferir</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-400">
+                    {bucket.preferredInstruments.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </article>
+              ))}
+            </div>
+
+            {!!allocationPlan.rulesApplied.length && (
+              <div className="mt-5 rounded-2xl border border-zinc-800 bg-black/30 p-4">
+                <p className="font-semibold text-zinc-100">Regras aplicadas</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-400">
+                  {allocationPlan.rulesApplied.map((rule) => <li key={rule}>{rule}</li>)}
+                </ul>
+              </div>
+            )}
           </section>
         )}
 

@@ -18,4 +18,6 @@
 - [x] Add portfolio import helper for DEGIRO exports
 - [x] Add visual holdings editor
 - [x] Add monthly allocation plan
+- [x] Add pt-PT/en-GB language switch
+- [ ] Translate generated report prose/scoring notes fully
 - [ ] Track historical report performance

@@ -18,6 +18,7 @@ const holdingSchema = z.object({
 });
 
 export const portfolioSettingsSchema = z.object({
+  locale: z.enum(["pt-PT", "en-GB"]).default("pt-PT"),
   monthlyContribution: z.coerce.number().min(0).default(500),
   emergencyFundReady: z.coerce.boolean().default(false),
   preferredProfile: z.enum(["conservative", "moderate", "aggressive"]).default("moderate"),
@@ -32,6 +33,7 @@ export const portfolioSettingsSchema = z.object({
 });
 
 export const defaultPortfolioSettings: PortfolioSettings = {
+  locale: "pt-PT",
   monthlyContribution: 500,
   emergencyFundReady: false,
   preferredProfile: "moderate",

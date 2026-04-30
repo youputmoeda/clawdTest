@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { parseDegiroPortfolioCsv } from "@/lib/investments/degiro";
+import { getLabels } from "@/lib/investments/i18n";
 import type { AllocationPlan } from "@/lib/investments/allocation";
 import type { Holding, InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
@@ -192,10 +193,13 @@ export default function InvestmentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const locale = settings?.locale ?? "pt-PT";
+  const t = getLabels(locale);
+
   const generated = useMemo(() => {
     if (!report) return "";
-    return new Date(report.generatedAt).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" });
-  }, [report]);
+    return new Date(report.generatedAt).toLocaleString(locale, { timeZone: "Europe/Lisbon" });
+  }, [report, locale]);
 
   function switchSession(next: MarketSession) {
     setSession(next);
@@ -240,16 +244,14 @@ export default function InvestmentsPage() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.32em] text-emerald-300">Investment Research Agent</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">Market-open research para Portugal + DEGIRO</h1>
-              <p className="mt-4 max-w-3xl text-zinc-400">
-                Relatórios para Europa e EUA, com três perfis de risco. Sem crypto. Foco em ETFs UCITS e ações que fazem sentido para um investidor EU.
-              </p>
+              <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">{t.appTitle}</h1>
+              <p className="mt-4 max-w-3xl text-zinc-400">{t.appSubtitle}</p>
             </div>
             <div className="rounded-2xl border border-zinc-800 bg-black/50 p-4 text-sm text-zinc-300">
-              <p><strong className="text-zinc-100">Broker:</strong> DEGIRO</p>
-              <p><strong className="text-zinc-100">Base:</strong> EUR · Portugal/EU</p>
-              <p><strong className="text-zinc-100">Email:</strong> jptms@iscte-iul.pt</p>
-              <p><strong className="text-zinc-100">Crypto:</strong> excluída</p>
+              <p><strong className="text-zinc-100">{t.broker}:</strong> DEGIRO</p>
+              <p><strong className="text-zinc-100">{t.base}:</strong> EUR · Portugal/EU</p>
+              <p><strong className="text-zinc-100">{t.email}:</strong> jptms@iscte-iul.pt</p>
+              <p><strong className="text-zinc-100">{t.crypto}:</strong> {t.excluded}</p>
             </div>
           </div>
         </section>
@@ -260,75 +262,76 @@ export default function InvestmentsPage() {
               onClick={() => switchSession("europe-open")}
               className={`rounded-xl px-5 py-3 font-semibold ${session === "europe-open" ? "bg-emerald-400 text-black" : "border border-zinc-800 bg-zinc-950 text-zinc-300"}`}
             >
-              Europa open
+              {t.europeOpen}
             </button>
             <button
               onClick={() => switchSession("us-open")}
               className={`rounded-xl px-5 py-3 font-semibold ${session === "us-open" ? "bg-emerald-400 text-black" : "border border-zinc-800 bg-zinc-950 text-zinc-300"}`}
             >
-              EUA open
+              {t.usOpen}
             </button>
             <button onClick={() => loadReport()} className="rounded-xl border border-zinc-800 bg-zinc-950 px-5 py-3 font-semibold text-zinc-300">
-              {loading ? "A gerar..." : "Gerar relatório"}
+              {loading ? t.generating : t.generateReport}
             </button>
             <button onClick={previewEmail} className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 font-semibold text-emerald-200">
-              Preview email
+              {t.previewEmail}
             </button>
           </div>
-          {report && <p className="text-sm text-zinc-500">Gerado: {generated}</p>}
+          {report && <p className="text-sm text-zinc-500">{t.generated}: {generated}</p>}
         </section>
 
         {settings && (
           <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">Personalização</p>
-                <h2 className="mt-1 text-3xl font-black">Portfolio & regras</h2>
-                <p className="mt-2 text-zinc-400">Estas regras ajustam o score: core ETF target, limite de stocks, exposição US/tech, fundo de emergência e contribuição mensal.</p>
+                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">{t.personalization}</p>
+                <h2 className="mt-1 text-3xl font-black">{t.portfolioRules}</h2>
+                <p className="mt-2 text-zinc-400">{t.portfolioRulesSubtitle}</p>
               </div>
               <button onClick={saveSettings} className="rounded-xl bg-emerald-400 px-5 py-3 font-bold text-black disabled:opacity-50" disabled={savingSettings}>
-                {savingSettings ? "A guardar..." : "Guardar settings"}
+                {savingSettings ? t.saving : t.saveSettings}
               </button>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <label className="text-sm text-zinc-300">Investimento mensal (€)<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.monthlyContribution} onChange={(e) => setSettings({ ...settings, monthlyContribution: Number(e.target.value) })} /></label>
-              <label className="text-sm text-zinc-300">Perfil preferido<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.preferredProfile} onChange={(e) => setSettings({ ...settings, preferredProfile: e.target.value as RiskProfile })}><option value="conservative">Conservador</option><option value="moderate">Moderado</option><option value="aggressive">Agressivo</option></select></label>
-              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.emergencyFundReady} onChange={(e) => setSettings({ ...settings, emergencyFundReady: e.target.checked })} /> Fundo de emergência pronto</label>
-              <label className="text-sm text-zinc-300">Core ETF target %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.coreEtfTargetPercent} onChange={(e) => setSettings({ ...settings, coreEtfTargetPercent: Number(e.target.value) })} /></label>
-              <label className="text-sm text-zinc-300">Satélite/stocks target %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.satelliteTargetPercent} onChange={(e) => setSettings({ ...settings, satelliteTargetPercent: Number(e.target.value) })} /></label>
-              <label className="text-sm text-zinc-300">Máx single stock %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSingleStockPercent} onChange={(e) => setSettings({ ...settings, maxSingleStockPercent: Number(e.target.value) })} /></label>
-              <label className="text-sm text-zinc-300">Máx sector/tech %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSectorPercent} onChange={(e) => setSettings({ ...settings, maxSectorPercent: Number(e.target.value) })} /></label>
-              <label className="text-sm text-zinc-300">Máx US %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxUSPercent} onChange={(e) => setSettings({ ...settings, maxUSPercent: Number(e.target.value) })} /></label>
-              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.preferAccumulatingEtfs} onChange={(e) => setSettings({ ...settings, preferAccumulatingEtfs: e.target.checked })} /> Preferir accumulating ETFs</label>
+              <label className="text-sm text-zinc-300">Language<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.locale} onChange={(e) => setSettings({ ...settings, locale: e.target.value as "pt-PT" | "en-GB" })}><option value="pt-PT">pt-PT</option><option value="en-GB">en-GB</option></select></label>
+              <label className="text-sm text-zinc-300">{t.monthlyInvestment}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.monthlyContribution} onChange={(e) => setSettings({ ...settings, monthlyContribution: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">{t.preferredProfile}<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.preferredProfile} onChange={(e) => setSettings({ ...settings, preferredProfile: e.target.value as RiskProfile })}><option value="conservative">{t.conservative}</option><option value="moderate">{t.moderate}</option><option value="aggressive">{t.aggressive}</option></select></label>
+              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.emergencyFundReady} onChange={(e) => setSettings({ ...settings, emergencyFundReady: e.target.checked })} /> {t.emergencyFundReady}</label>
+              <label className="text-sm text-zinc-300">{t.coreTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.coreEtfTargetPercent} onChange={(e) => setSettings({ ...settings, coreEtfTargetPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">{t.satelliteTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.satelliteTargetPercent} onChange={(e) => setSettings({ ...settings, satelliteTargetPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">{t.maxSingleStock}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSingleStockPercent} onChange={(e) => setSettings({ ...settings, maxSingleStockPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">{t.maxSectorTech}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSectorPercent} onChange={(e) => setSettings({ ...settings, maxSectorPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">{t.maxUS}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxUSPercent} onChange={(e) => setSettings({ ...settings, maxUSPercent: Number(e.target.value) })} /></label>
+              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.preferAccumulatingEtfs} onChange={(e) => setSettings({ ...settings, preferAccumulatingEtfs: e.target.checked })} /> {t.preferAccumulating}</label>
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <label className="text-sm text-zinc-300">Notas pessoais<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.notes} onChange={(e) => setSettings({ ...settings, notes: e.target.value })} /></label>
+              <label className="text-sm text-zinc-300">{t.personalNotes}<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.notes} onChange={(e) => setSettings({ ...settings, notes: e.target.value })} /></label>
               <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-zinc-100">Import DEGIRO CSV</p>
-                    <p className="text-xs text-zinc-500">Cola export CSV/semicolon. Parser é tolerante e tenta inferir ticker/tipo/tags.</p>
+                    <p className="font-semibold text-zinc-100">{t.importDegiro}</p>
+                    <p className="text-xs text-zinc-500">{t.importDegiroHelp}</p>
                   </div>
-                  <button onClick={importCsv} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-sm text-emerald-200">Importar</button>
+                  <button onClick={importCsv} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-sm text-emerald-200">{t.import}</button>
                 </div>
-                <textarea className="mt-3 min-h-24 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs text-zinc-300" value={csvImport} onChange={(e) => setCsvImport(e.target.value)} placeholder="Produto;Ticker;Quantidade;Preço médio;Valor;Moeda" />
+                <textarea className="mt-3 min-h-24 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs text-zinc-300" value={csvImport} onChange={(e) => setCsvImport(e.target.value)} placeholder={locale === "pt-PT" ? "Produto;Ticker / ISIN;Quant.;Preço;Valor;;Valor em EUR" : "Product;Ticker / ISIN;Qty;Price;Value;;Value in EUR"} />
               </div>
             </div>
 
             <div className="mt-6 rounded-2xl border border-zinc-800 bg-black/30 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-zinc-100">Holdings</p>
-                  <p className="text-xs text-zinc-500">Editor visual — já não precisas mexer em JSON para o básico.</p>
+                  <p className="font-semibold text-zinc-100">{t.holdings}</p>
+                  <p className="text-xs text-zinc-500">{t.holdingsHelp}</p>
                 </div>
-                <button onClick={addHolding} className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-black">Adicionar holding</button>
+                <button onClick={addHolding} className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-black">{t.addHolding}</button>
               </div>
               <div className="mt-4 overflow-x-auto">
                 <table className="min-w-full text-left text-sm text-zinc-300">
                   <thead className="text-xs uppercase text-zinc-500">
-                    <tr><th className="p-2">Ticker</th><th className="p-2">Nome</th><th className="p-2">Tipo</th><th className="p-2">Valor €</th><th className="p-2">Tags</th><th className="p-2"></th></tr>
+                    <tr><th className="p-2">{t.ticker}</th><th className="p-2">{t.name}</th><th className="p-2">{t.type}</th><th className="p-2">{t.value}</th><th className="p-2">{t.tags}</th><th className="p-2"></th></tr>
                   </thead>
                   <tbody>
                     {settings.holdings.map((holding, index) => (
@@ -338,17 +341,17 @@ export default function InvestmentsPage() {
                         <td className="p-2"><select className="rounded-lg border border-zinc-800 bg-black p-2" value={holding.type} onChange={(e) => updateHolding(index, { type: e.target.value as Holding["type"], tags: inferTags(holding.ticker, e.target.value as Holding["type"]) })}><option>ETF UCITS</option><option>Stock</option><option>Bond ETF UCITS</option><option>Cash-like ETF</option><option>Other</option></select></td>
                         <td className="p-2"><input className="w-28 rounded-lg border border-zinc-800 bg-black p-2" type="number" value={holding.currentValue ?? 0} onChange={(e) => updateHolding(index, { currentValue: Number(e.target.value) })} /></td>
                         <td className="p-2"><input className="w-48 rounded-lg border border-zinc-800 bg-black p-2" value={(holding.tags ?? []).join(",")} onChange={(e) => updateHolding(index, { tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })} /></td>
-                        <td className="p-2"><button onClick={() => removeHolding(index)} className="rounded-lg border border-rose-500/40 px-3 py-2 text-rose-200">Remover</button></td>
+                        <td className="p-2"><button onClick={() => removeHolding(index)} className="rounded-lg border border-rose-500/40 px-3 py-2 text-rose-200">{t.remove}</button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {!settings.holdings.length && <p className="py-6 text-center text-zinc-500">Sem holdings ainda. Adiciona manualmente ou cola CSV da DEGIRO.</p>}
+                {!settings.holdings.length && <p className="py-6 text-center text-zinc-500">{t.noHoldings}</p>}
               </div>
             </div>
 
             <details className="mt-4 rounded-2xl border border-zinc-800 bg-black/30 p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-zinc-300">JSON avançado</summary>
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-300">{t.advancedJson}</summary>
               <textarea className="mt-3 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} />
             </details>
           </section>
@@ -358,11 +361,11 @@ export default function InvestmentsPage() {
           <section className="rounded-3xl border border-emerald-500/30 bg-emerald-950/30 p-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">Monthly Allocation Plan</p>
-                <h2 className="mt-1 text-3xl font-black">Plano para €{allocationPlan.monthlyContribution.toFixed(0)}/mês</h2>
+                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">{t.allocationPlan}</p>
+                <h2 className="mt-1 text-3xl font-black">{t.planFor} €{allocationPlan.monthlyContribution.toFixed(0)}{locale === "pt-PT" ? "/mês" : "/month"}</h2>
                 <p className="mt-2 max-w-4xl text-zinc-300">{allocationPlan.summary}</p>
               </div>
-              <button onClick={loadAllocationPlan} className="rounded-xl border border-emerald-500/40 px-4 py-3 text-sm font-semibold text-emerald-200">Recalcular plano</button>
+              <button onClick={loadAllocationPlan} className="rounded-xl border border-emerald-500/40 px-4 py-3 text-sm font-semibold text-emerald-200">{t.recalculate}</button>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
@@ -374,7 +377,7 @@ export default function InvestmentsPage() {
                   <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-400">
                     {bucket.rationale.map((item) => <li key={item}>{item}</li>)}
                   </ul>
-                  <p className="mt-4 text-sm font-semibold text-zinc-200">Preferir</p>
+                  <p className="mt-4 text-sm font-semibold text-zinc-200">{t.prefer}</p>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-400">
                     {bucket.preferredInstruments.map((item) => <li key={item}>{item}</li>)}
                   </ul>
@@ -384,7 +387,7 @@ export default function InvestmentsPage() {
 
             {!!allocationPlan.rulesApplied.length && (
               <div className="mt-5 rounded-2xl border border-zinc-800 bg-black/30 p-4">
-                <p className="font-semibold text-zinc-100">Regras aplicadas</p>
+                <p className="font-semibold text-zinc-100">{t.rulesApplied}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-400">
                   {allocationPlan.rulesApplied.map((rule) => <li key={rule}>{rule}</li>)}
                 </ul>
@@ -431,7 +434,7 @@ export default function InvestmentsPage() {
                 <table className="min-w-full text-left text-sm text-zinc-300">
                   <thead className="bg-zinc-950 text-zinc-500">
                     <tr>
-                      <th className="p-3">Ticker</th>
+                      <th className="p-3">{t.ticker}</th>
                       <th className="p-3">Preço</th>
                       <th className="p-3">Variação</th>
                       <th className="p-3">Moeda</th>

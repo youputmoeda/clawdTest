@@ -1,5 +1,6 @@
 export type MarketSession = "europe-open" | "us-open";
 export type RiskProfile = "conservative" | "moderate" | "aggressive";
+export type AppLocale = "pt-PT" | "en-GB";
 
 export type InvestmentConfig = {
   investorCountry: "Portugal";
@@ -24,6 +25,7 @@ export type Holding = {
 };
 
 export type PortfolioSettings = {
+  locale: AppLocale;
   monthlyContribution: number;
   emergencyFundReady: boolean;
   preferredProfile: RiskProfile;

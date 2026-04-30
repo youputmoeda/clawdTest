@@ -6,11 +6,11 @@ import { scoreIdeas } from "../scoring";
 import { analysePortfolio, loadPortfolioSettings } from "../settings";
 import type { InvestmentReport, MarketSession } from "../types";
 
-export async function generateInvestmentReport(session: MarketSession): Promise<InvestmentReport> {
+export async function generateInvestmentReport(session: MarketSession, personId?: string): Promise<InvestmentReport> {
   const labels = sessionLabels[session];
   const generatedAt = new Date().toISOString();
   const sessionAssets = assetUniverse.filter((asset) => asset.sessions.includes(session));
-  const settings = await loadPortfolioSettings();
+  const settings = await loadPortfolioSettings(personId);
   const portfolioAnalysis = analysePortfolio(settings);
   const [signals, marketData] = await Promise.all([fetchMarketNews(session, settings.holdings), fetchMarketData(sessionAssets)]);
   const errors = [

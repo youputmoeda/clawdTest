@@ -4,6 +4,10 @@ import type { Holding, PortfolioAnalysis, PortfolioSettings } from "./types";
 
 const SETTINGS_KEY = "investment-settings";
 
+function settingsKey(personId?: string) {
+  return personId ? `${SETTINGS_KEY}:${personId}` : SETTINGS_KEY;
+}
+
 const holdingSchema = z.object({
   ticker: z.string().min(1),
   isin: z.string().optional(),
@@ -67,14 +71,19 @@ const msg = {
   },
 } as const;
 
-export async function loadPortfolioSettings(): Promise<PortfolioSettings> {
-  const stored = await readJsonSetting<unknown>(SETTINGS_KEY, defaultPortfolioSettings);
+export async function loadPortfolioSettings(personId?: string): Promise<PortfolioSettings> {
+  if (personId === "joao") {
+    const legacy = await readJsonSetting<unknown>(SETTINGS_KEY, defaultPortfolioSettings);
+    const stored = await readJsonSetting<unknown>(settingsKey(personId), legacy);
+    return portfolioSettingsSchema.parse(stored);
+  }
+  const stored = await readJsonSetting<unknown>(settingsKey(personId), defaultPortfolioSettings);
   return portfolioSettingsSchema.parse(stored);
 }
 
-export async function savePortfolioSettings(input: unknown): Promise<PortfolioSettings> {
+export async function savePortfolioSettings(input: unknown, personId?: string): Promise<PortfolioSettings> {
   const parsed = portfolioSettingsSchema.parse(input);
-  return writeJsonSetting(SETTINGS_KEY, parsed);
+  return writeJsonSetting(settingsKey(personId), parsed);
 }
 
 function valueOf(holding: Holding) {

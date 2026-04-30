@@ -4,6 +4,7 @@ import { readJsonSetting, writeJsonSetting } from "../store";
 import type { InvestmentReport, MarketSession } from "../types";
 
 const HISTORY_KEY = "investment-report-history";
+function historyKey(personId?: string) { return personId ? `${HISTORY_KEY}:${personId}` : HISTORY_KEY; }
 const MAX_HISTORY = 100;
 
 export type ReportHistoryEntry = {
@@ -59,19 +60,19 @@ function summarise(report: InvestmentReport): ReportHistoryEntry {
   };
 }
 
-export async function loadReportHistory() {
-  return readJsonSetting<ReportHistoryEntry[]>(HISTORY_KEY, []);
+export async function loadReportHistory(personId?: string) {
+  return readJsonSetting<ReportHistoryEntry[]>(historyKey(personId), []);
 }
 
-export async function appendReportHistory(report: InvestmentReport) {
-  const history = await loadReportHistory();
+export async function appendReportHistory(report: InvestmentReport, personId?: string) {
+  const history = await loadReportHistory(personId);
   const next = [summarise(report), ...history.filter((entry) => entry.id !== report.id)].slice(0, MAX_HISTORY);
-  await writeJsonSetting(HISTORY_KEY, next);
+  await writeJsonSetting(historyKey(personId), next);
   return next;
 }
 
-export async function evaluateReportPerformance() {
-  const history = await loadReportHistory();
+export async function evaluateReportPerformance(personId?: string) {
+  const history = await loadReportHistory(personId);
   const tickers = Array.from(new Set(history.flatMap((entry) => entry.topIdeas.map((idea) => idea.ticker))));
   const pseudoAssets = tickers.map((ticker) => {
     const known = assetUniverse.find((asset) => asset.ticker === ticker);

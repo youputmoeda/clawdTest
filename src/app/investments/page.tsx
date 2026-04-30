@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { parseDegiroPortfolioCsv } from "@/lib/investments/degiro";
 import { getLabels } from "@/lib/investments/i18n";
 import type { AllocationPlan } from "@/lib/investments/allocation";
-import type { Holding, InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
+import type { Holding, InvestmentIdea, InvestmentPerson, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
 const profileLabels: Record<RiskProfile, string> = {
   conservative: "Conservador",
@@ -126,6 +126,8 @@ function IdeaCard({ idea }: { idea: InvestmentIdea }) {
 
 export default function InvestmentsPage() {
   const [session, setSession] = useState<MarketSession>("europe-open");
+  const [people, setPeople] = useState<InvestmentPerson[]>([]);
+  const [personId, setPersonId] = useState("joao");
   const [report, setReport] = useState<InvestmentReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -139,7 +141,7 @@ export default function InvestmentsPage() {
   async function loadReport(nextSession = session) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/investments/report?session=${nextSession}`, { cache: "no-store" });
+      const res = await fetch(`/api/investments/report?session=${nextSession}&personId=${personId}`, { cache: "no-store" });
       const data = await res.json();
       setReport(data);
       setEmailPreview("");
@@ -149,25 +151,42 @@ export default function InvestmentsPage() {
   }
 
   async function previewEmail() {
-    const res = await fetch(`/api/investments/email-preview?session=${session}`, { cache: "no-store" });
+    const res = await fetch(`/api/investments/email-preview?session=${session}&personId=${personId}`, { cache: "no-store" });
     const data = await res.json();
     setEmailPreview(data.email.text);
   }
 
+  async function loadPeople() {
+    const res = await fetch("/api/investments/people", { cache: "no-store" });
+    const data = await res.json();
+    setPeople(data.people ?? []);
+  }
+
+  async function addGirlfriendProfile() {
+    const res = await fetch("/api/investments/people", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "namorada", name: "Namorada", relationship: "partner" }),
+    });
+    const data = await res.json();
+    setPeople(data.people ?? []);
+    setPersonId("namorada");
+  }
+
   async function loadAllocationPlan() {
-    const res = await fetch("/api/investments/allocation-plan", { cache: "no-store" });
+    const res = await fetch(`/api/investments/allocation-plan?personId=${personId}`, { cache: "no-store" });
     const data = await res.json();
     setAllocationPlan(data.plan);
   }
 
   async function loadPerformanceHistory() {
-    const res = await fetch("/api/investments/report-performance", { cache: "no-store" });
+    const res = await fetch(`/api/investments/report-performance?personId=${personId}`, { cache: "no-store" });
     const data = await res.json();
     setPerformanceHistory(data.performance ?? []);
   }
 
   async function loadSettings() {
-    const res = await fetch("/api/investments/settings", { cache: "no-store" });
+    const res = await fetch(`/api/investments/settings?personId=${personId}`, { cache: "no-store" });
     const data = await res.json();
     setSettings(data.settings);
     setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
@@ -179,7 +198,7 @@ export default function InvestmentsPage() {
     setSavingSettings(true);
     try {
       const payload = { ...settings, holdings: JSON.parse(holdingsJson || "[]") };
-      const res = await fetch("/api/investments/settings", {
+      const res = await fetch(`/api/investments/settings?personId=${personId}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
@@ -196,11 +215,12 @@ export default function InvestmentsPage() {
   }
 
   useEffect(() => {
+    loadPeople();
     loadSettings();
     loadReport("europe-open");
     loadPerformanceHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [personId]);
 
   const locale = settings?.locale ?? "pt-PT";
   const t = getLabels(locale);
@@ -267,6 +287,10 @@ export default function InvestmentsPage() {
 
         <section className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="flex flex-wrap gap-3">
+            <select className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-200" value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              {people.map((person) => <option key={person.id} value={person.id}>{person.name} ({person.id})</option>)}
+            </select>
+            <button onClick={addGirlfriendProfile} className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-300">+ Namorada</button>
             <button
               onClick={() => switchSession("europe-open")}
               className={`rounded-xl px-5 py-3 font-semibold ${session === "europe-open" ? "bg-emerald-400 text-black" : "border border-zinc-800 bg-zinc-950 text-zinc-300"}`}

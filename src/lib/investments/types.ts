@@ -2,6 +2,13 @@ export type MarketSession = "europe-open" | "us-open";
 export type RiskProfile = "conservative" | "moderate" | "aggressive";
 export type AppLocale = "pt-PT" | "en-GB";
 
+export type InvestmentPerson = {
+  id: string;
+  name: string;
+  relationship?: string;
+  createdAt: string;
+};
+
 export type InvestmentConfig = {
   investorCountry: "Portugal";
   broker: "DEGIRO";

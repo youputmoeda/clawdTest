@@ -54,7 +54,7 @@ async function exportRepo(repoIdOrName?: string) {
   }
 
   await fs.writeFile(path.join("memory", "projects", "README.md"), `${indexLines.join("\n")}\n`, "utf8");
-  console.log(JSON.stringify({ ok: true, exported: repos.map((r) => r.name) }, null, 2));
+  console.log(JSON.stringify({ ok: true, exported: repos.map((repoItem: { name: string }) => repoItem.name) }, null, 2));
 }
 
 exportRepo(process.argv[2])

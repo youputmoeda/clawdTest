@@ -9,6 +9,47 @@ import type {
   RiskProfile,
 } from "./types";
 
+const copy = {
+  "pt-PT": {
+    emergency: "Fundo de emergência não pronto: ações individuais são penalizadas até confirmares reserva de segurança.",
+    coreBoost: "Core ETF abaixo do target; ETFs UCITS amplos recebem boost.",
+    satelliteHigh: "Exposição satélite/ações já está no target ou acima.",
+    existingHigh: (ticker: string) => `Exposição existente a ${ticker} está no/acima do limite por ação.`,
+    usHigh: "Exposição US no/acima do máximo configurado.",
+    techHigh: "Exposição tech/AI no/acima do máximo sectorial configurado.",
+    accumulating: "Preferência por ETFs acumulativos suporta candidatos UCITS; confirmar share class.",
+    monthly: (v: number) => `Contribuição mensal configurada: ${v.toFixed(0)} EUR.`,
+    noMonthly: "Sem contribuição mensal configurada; tratar como watchlist-only.",
+    none: "Sem ajuste específico de portfolio aplicado.",
+    priceUnavailable: "preço indisponível",
+    changeUnavailable: "variação indisponível",
+    latestData: (price: string, change: string) => `Dados de mercado: ${price}, ${change}.`,
+    newsHits: (hits: string) => `Tags detectadas em notícias live: ${hits}.`,
+    noNewsHits: "Sem tag forte em notícias; score baseado sobretudo em perfil e market data.",
+    dataPenalty: (err: string) => `Penalização por qualidade de dados: ${err}.`,
+    dataSource: (source: string, fetched: string) => `Fonte: ${source}, obtido ${fetched}.`,
+  },
+  "en-GB": {
+    emergency: "Emergency fund not ready: single stocks are penalised until basic safety buffer is confirmed.",
+    coreBoost: "Core ETF allocation is below target, so broad UCITS ETFs get a boost.",
+    satelliteHigh: "Satellite/single-stock exposure is already at or above target.",
+    existingHigh: (ticker: string) => `Existing ${ticker} exposure is at/above max single-stock limit.`,
+    usHigh: "US-tagged exposure is at/above configured max.",
+    techHigh: "Tech/AI exposure is at/above configured sector max.",
+    accumulating: "Preference for accumulating ETFs supports UCITS ETF candidates; still verify share class.",
+    monthly: (v: number) => `Monthly contribution configured: ${v.toFixed(0)} EUR.`,
+    noMonthly: "No monthly contribution configured; treat as watchlist-only.",
+    none: "No portfolio-specific adjustment applied.",
+    priceUnavailable: "price unavailable",
+    changeUnavailable: "price change unavailable",
+    latestData: (price: string, change: string) => `Latest market data: ${price}, ${change}.`,
+    newsHits: (hits: string) => `Related live news tags detected: ${hits}.`,
+    noNewsHits: "No strong matching news tag; scored mainly on profile fit and market data.",
+    dataPenalty: (err: string) => `Data quality penalty: ${err}.`,
+    dataSource: (source: string, fetched: string) => `Data source: ${source}, fetched ${fetched}.`,
+  },
+} as const;
+
 function confidence(score: number, data: MarketDataPoint): InvestmentIdea["confidence"] {
   if (data.error) return "low";
   if (score >= 75) return "high";
@@ -89,6 +130,7 @@ function holdingValue(settings: PortfolioSettings, ticker: string) {
 }
 
 function personalizationScore(asset: AssetCandidate, settings: PortfolioSettings, analysis: PortfolioAnalysis) {
+  const t = copy[settings.locale] ?? copy["pt-PT"];
   let score = 0;
   const notes: string[] = [];
   const total = analysis.totalValue;
@@ -97,47 +139,47 @@ function personalizationScore(asset: AssetCandidate, settings: PortfolioSettings
 
   if (!settings.emergencyFundReady && asset.type === "Stock") {
     score -= 18;
-    notes.push("Emergency fund not ready: single stocks are penalised until basic safety buffer is confirmed.");
+    notes.push(t.emergency);
   }
 
   if (asset.type === "ETF UCITS" && analysis.coreEtfPercent < settings.coreEtfTargetPercent) {
     score += 12;
-    notes.push("Core ETF allocation is below target, so broad UCITS ETFs get a boost.");
+    notes.push(t.coreBoost);
   }
 
   if (asset.type === "Stock" && analysis.stockPercent >= settings.satelliteTargetPercent) {
     score -= 15;
-    notes.push("Satellite/single-stock exposure is already at or above target.");
+    notes.push(t.satelliteHigh);
   }
 
   if (asset.type === "Stock" && existingPercent >= settings.maxSingleStockPercent) {
     score -= 25;
-    notes.push(`Existing ${asset.ticker} exposure is at/above max single-stock limit.`);
+    notes.push(t.existingHigh(asset.ticker));
   }
 
   if (asset.tags.includes("us") && analysis.usTaggedPercent >= settings.maxUSPercent) {
     score -= 10;
-    notes.push("US-tagged exposure is at/above configured max.");
+    notes.push(t.usHigh);
   }
 
   if ((asset.tags.includes("tech") || asset.tags.includes("ai")) && analysis.techTaggedPercent >= settings.maxSectorPercent) {
     score -= 12;
-    notes.push("Tech/AI exposure is at/above configured sector max.");
+    notes.push(t.techHigh);
   }
 
   if (settings.preferAccumulatingEtfs && asset.type.includes("ETF")) {
     score += 4;
-    notes.push("Preference for accumulating ETFs supports UCITS ETF candidates; still verify share class.");
+    notes.push(t.accumulating);
   }
 
   if (settings.monthlyContribution > 0) {
-    notes.push(`Monthly contribution configured: ${settings.monthlyContribution.toFixed(0)} EUR.`);
+    notes.push(t.monthly(settings.monthlyContribution));
   } else {
     score -= 10;
-    notes.push("No monthly contribution configured; treat as watchlist-only.");
+    notes.push(t.noMonthly);
   }
 
-  if (!notes.length) notes.push("No portfolio-specific adjustment applied.");
+  if (!notes.length) notes.push(t.none);
   return { score, notes };
 }
 
@@ -151,6 +193,7 @@ export function scoreIdeas(params: {
   analysis: PortfolioAnalysis;
 }): InvestmentIdea[] {
   const dataByLabel = new Map(params.marketData.map((point) => [point.label, point]));
+  const t = copy[params.settings.locale] ?? copy["pt-PT"];
 
   return params.assets
     .map((asset) => {
@@ -178,8 +221,8 @@ export function scoreIdeas(params: {
         ),
       );
 
-      const changeText = data.changePercent === undefined ? "price change unavailable" : `${data.changePercent.toFixed(2)}% today/latest`;
-      const priceText = data.regularMarketPrice === undefined ? "price unavailable" : `${data.regularMarketPrice.toFixed(2)} ${data.currency}`;
+      const changeText = data.changePercent === undefined ? t.changeUnavailable : `${data.changePercent.toFixed(2)}% today/latest`;
+      const priceText = data.regularMarketPrice === undefined ? t.priceUnavailable : `${data.regularMarketPrice.toFixed(2)} ${data.currency}`;
       const newsHits = asset.tags.filter((tag) =>
         params.signals.some((signal) => `${signal.title} ${signal.summary}`.toLowerCase().includes(tag.toLowerCase())),
       );
@@ -192,9 +235,9 @@ export function scoreIdeas(params: {
         profile: params.profile,
         thesis: asset.thesis,
         whyNow: [
-          `Latest market data: ${priceText}, ${changeText}.`,
-          newsHits.length ? `Related live news tags detected: ${newsHits.join(", ")}.` : "No strong matching news tag; scored mainly on profile fit and market data.",
-          data.error ? `Data quality penalty: ${data.error}.` : `Data source: ${data.source}, fetched ${new Date(data.fetchedAt).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}.`,
+          t.latestData(priceText, changeText),
+          newsHits.length ? t.newsHits(newsHits.join(", ")) : t.noNewsHits,
+          data.error ? t.dataPenalty(data.error) : t.dataSource(data.source, new Date(data.fetchedAt).toLocaleString(params.settings.locale, { timeZone: "Europe/Lisbon" })),
         ],
         risks: asset.risks,
         horizon: asset.horizon,

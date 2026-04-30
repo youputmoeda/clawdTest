@@ -47,6 +47,27 @@ export const defaultPortfolioSettings: PortfolioSettings = {
   holdings: [],
 };
 
+const msg = {
+  "pt-PT": {
+    emergency: "Fundo de emergência não marcado como pronto; evita sobre-alocar a activos de risco.",
+    noHoldings: "Ainda não há holdings configuradas; a personalização usa apenas regras default.",
+    coreBelow: "Alocação core ETF abaixo do target; favorecer ETFs UCITS amplos antes de satélites.",
+    stockAbove: "Exposição a ações/satélites acima do target.",
+    usAbove: "Exposição marcada como US acima do máximo configurado.",
+    techAbove: "Exposição marcada como tech/AI acima do máximo sectorial configurado.",
+    noContribution: "Contribuição mensal é zero; relatórios devem ser apenas watchlist.",
+  },
+  "en-GB": {
+    emergency: "Emergency fund not marked as ready; avoid over-allocating to risky assets.",
+    noHoldings: "No holdings configured yet; personalisation is based only on default rules.",
+    coreBelow: "Core ETF allocation is below target; favour broad UCITS ETFs before adding satellites.",
+    stockAbove: "Single-stock/satellite exposure is above target.",
+    usAbove: "US-tagged exposure is above configured max.",
+    techAbove: "Tech/AI tagged exposure is above configured sector max.",
+    noContribution: "Monthly contribution is zero; reports should be watchlist-only until contribution is set.",
+  },
+} as const;
+
 export async function loadPortfolioSettings(): Promise<PortfolioSettings> {
   try {
     const raw = await fs.readFile(settingsPath, "utf8");
@@ -75,6 +96,7 @@ function pct(value: number, total: number) {
 }
 
 export function analysePortfolio(settings: PortfolioSettings): PortfolioAnalysis {
+  const t = msg[settings.locale] ?? msg["pt-PT"];
   const totalValue = settings.holdings.reduce((sum, holding) => sum + valueOf(holding), 0);
   const core = settings.holdings.filter((h) => h.type === "ETF UCITS").reduce((sum, h) => sum + valueOf(h), 0);
   const stocks = settings.holdings.filter((h) => h.type === "Stock").reduce((sum, h) => sum + valueOf(h), 0);
@@ -91,13 +113,13 @@ export function analysePortfolio(settings: PortfolioSettings): PortfolioAnalysis
   const warnings: string[] = [];
   const allocationNotes: string[] = [];
 
-  if (!settings.emergencyFundReady) warnings.push("Emergency fund not marked as ready; avoid over-allocating to risky assets.");
-  if (!settings.holdings.length) warnings.push("No holdings configured yet; personalisation is based only on default rules.");
-  if (coreEtfPercent < settings.coreEtfTargetPercent && totalValue > 0) allocationNotes.push("Core ETF allocation is below target; favour broad UCITS ETFs before adding satellites.");
-  if (stockPercent > settings.satelliteTargetPercent && totalValue > 0) warnings.push("Single-stock/satellite exposure is above target.");
-  if (usTaggedPercent > settings.maxUSPercent && totalValue > 0) warnings.push("US-tagged exposure is above configured max.");
-  if (techTaggedPercent > settings.maxSectorPercent && totalValue > 0) warnings.push("Tech/AI tagged exposure is above configured sector max.");
-  if (settings.monthlyContribution <= 0) warnings.push("Monthly contribution is zero; reports should be watchlist-only until contribution is set.");
+  if (!settings.emergencyFundReady) warnings.push(t.emergency);
+  if (!settings.holdings.length) warnings.push(t.noHoldings);
+  if (coreEtfPercent < settings.coreEtfTargetPercent && totalValue > 0) allocationNotes.push(t.coreBelow);
+  if (stockPercent > settings.satelliteTargetPercent && totalValue > 0) warnings.push(t.stockAbove);
+  if (usTaggedPercent > settings.maxUSPercent && totalValue > 0) warnings.push(t.usAbove);
+  if (techTaggedPercent > settings.maxSectorPercent && totalValue > 0) warnings.push(t.techAbove);
+  if (settings.monthlyContribution <= 0) warnings.push(t.noContribution);
 
   return { totalValue, coreEtfPercent, stockPercent, bondOrCashPercent, usTaggedPercent, techTaggedPercent, warnings, allocationNotes };
 }

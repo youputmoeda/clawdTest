@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { subDays, format } from "date-fns";
 import type { Holding, MarketSession, MarketSignal } from "./types";
 
 type RssSource = {
@@ -51,7 +52,7 @@ function nameTokens(name?: string) {
   return (name || "")
     .split(/\s+/)
     .map((token) => token.replace(/[^a-z0-9.-]/gi, ""))
-    .filter((token) => token.length >= 5 && !/^(core|ucits|etf|fund|corp|company|holding|class)$/i.test(token));
+    .filter((token) => token.length >= 5 && !/^(core|ucits|etf|fund|corp|company|holding|class|world|global|ishares|vanguard)$/i.test(token));
 }
 
 function enrichWithPortfolio(signal: MarketSignal, holdings: Holding[] = [], session: MarketSession): MarketSignal {
@@ -70,6 +71,59 @@ function enrichWithPortfolio(signal: MarketSignal, holdings: Holding[] = [], ses
   if (portfolioImpact === "medium") relevanceScore += 2;
 
   return { ...signal, relevanceScore, affectedHoldings, affectedTags, portfolioImpact };
+}
+
+async function fetchFinnhubNews(holdings: Holding[]): Promise<MarketSignal[]> {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) return [];
+
+  const out: MarketSignal[] = [];
+  const from = format(subDays(new Date(), 7), "yyyy-MM-dd");
+  const to = format(new Date(), "yyyy-MM-dd");
+  const symbols = Array.from(new Set(holdings.map((h) => h.ticker).filter((ticker) => /^[A-Z.]{1,8}$/.test(ticker)).slice(0, 8)));
+
+  try {
+    const general = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${key}`, { next: { revalidate: 600 } });
+    if (general.ok) {
+      const json = (await general.json()) as any[];
+      out.push(...json.slice(0, 12).map((item, index) => ({
+        id: `finnhub-general-${index}-${item.id ?? item.datetime ?? item.headline?.slice(0, 20)}`,
+        title: item.headline || "Finnhub news",
+        summary: item.summary || "No summary provided by source.",
+        region: "Global" as const,
+        impact: impactFromTitle(item.headline || item.summary || ""),
+        source: `Finnhub/${item.source || "market news"}`,
+        url: item.url,
+        publishedAt: item.datetime ? new Date(item.datetime * 1000).toISOString() : undefined,
+      }))
+      );
+    }
+  } catch {
+    // RSS sources still cover baseline news.
+  }
+
+  await Promise.all(symbols.map(async (symbol) => {
+    try {
+      const res = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&token=${key}`, { next: { revalidate: 600 } });
+      if (!res.ok) return;
+      const json = (await res.json()) as any[];
+      out.push(...json.slice(0, 5).map((item, index) => ({
+        id: `finnhub-${symbol}-${index}-${item.id ?? item.datetime ?? item.headline?.slice(0, 20)}`,
+        title: item.headline || `${symbol} news`,
+        summary: item.summary || "No summary provided by source.",
+        region: "US" as const,
+        impact: impactFromTitle(item.headline || item.summary || ""),
+        source: `Finnhub/${item.source || symbol}`,
+        url: item.url,
+        publishedAt: item.datetime ? new Date(item.datetime * 1000).toISOString() : undefined,
+      }))
+      );
+    } catch {
+      // Ignore per-symbol failures; other sources remain.
+    }
+  }));
+
+  return out;
 }
 
 async function fetchSource(source: RssSource): Promise<MarketSignal[]> {
@@ -103,14 +157,17 @@ async function fetchSource(source: RssSource): Promise<MarketSignal[]> {
 
 export async function fetchMarketNews(session: MarketSession, holdings: Holding[] = []): Promise<MarketSignal[]> {
   const sources = rssSources.filter((source) => source.sessions.includes(session));
-  const settled = await Promise.allSettled(sources.map((source) => fetchSource(source)));
+  const [settled, finnhubSignals] = await Promise.all([
+    Promise.allSettled(sources.map((source) => fetchSource(source))),
+    fetchFinnhubNews(holdings),
+  ]);
   const signals = settled.flatMap((result, index) => {
     if (result.status === "fulfilled") return result.value;
     const source = sources[index];
     return [{ id: `${source.id}-fatal-error`, title: `${source.name} feed failed`, summary: result.reason instanceof Error ? result.reason.message : "Unknown RSS failure", region: source.region, impact: "low" as const, source: source.name, url: source.url, publishedAt: new Date().toISOString() }];
   });
 
-  const deduped = Array.from(new Map(signals.map((s) => [s.title, s])).values());
+  const deduped = Array.from(new Map([...signals, ...finnhubSignals].map((s) => [s.title, s])).values());
   return deduped
     .filter((signal) => !/crypto|bitcoin|ether/i.test(`${signal.title} ${signal.summary}`))
     .map((signal) => enrichWithPortfolio(signal, holdings, session))

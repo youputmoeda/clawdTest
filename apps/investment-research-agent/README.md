@@ -19,6 +19,8 @@ Local investment research dashboard and scheduled report generator for a Portuga
 - Live RSS/news ingestion
 - Live market data via Yahoo Finance chart API
 - Visible data freshness, sources, and confidence scoring
+- Portfolio/personalisation settings
+- Allocation-aware scoring adjustments
 
 ## Run
 

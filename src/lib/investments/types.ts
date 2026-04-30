@@ -11,6 +11,42 @@ export type InvestmentConfig = {
   profiles: RiskProfile[];
 };
 
+export type Holding = {
+  ticker: string;
+  name?: string;
+  type: "ETF UCITS" | "Stock" | "Bond ETF UCITS" | "Cash-like ETF" | "Other";
+  quantity?: number;
+  averagePrice?: number;
+  currency?: string;
+  currentValue?: number;
+  tags?: string[];
+};
+
+export type PortfolioSettings = {
+  monthlyContribution: number;
+  emergencyFundReady: boolean;
+  preferredProfile: RiskProfile;
+  coreEtfTargetPercent: number;
+  satelliteTargetPercent: number;
+  maxSingleStockPercent: number;
+  maxSectorPercent: number;
+  maxUSPercent: number;
+  preferAccumulatingEtfs: boolean;
+  notes: string;
+  holdings: Holding[];
+};
+
+export type PortfolioAnalysis = {
+  totalValue: number;
+  coreEtfPercent: number;
+  stockPercent: number;
+  bondOrCashPercent: number;
+  usTaggedPercent: number;
+  techTaggedPercent: number;
+  warnings: string[];
+  allocationNotes: string[];
+};
+
 export type MarketSignal = {
   id: string;
   title: string;
@@ -66,6 +102,7 @@ export type InvestmentIdea = {
   degiroNote: string;
   score: number;
   data: MarketDataPoint;
+  personalization: string[];
 };
 
 export type ProfileReport = {
@@ -81,6 +118,8 @@ export type InvestmentReport = {
   title: string;
   subtitle: string;
   config: InvestmentConfig;
+  settings: PortfolioSettings;
+  portfolioAnalysis: PortfolioAnalysis;
   signals: MarketSignal[];
   marketData: MarketDataPoint[];
   profiles: ProfileReport[];

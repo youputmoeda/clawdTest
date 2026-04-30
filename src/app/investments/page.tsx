@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { InvestmentIdea, InvestmentReport, MarketSession, RiskProfile } from "@/lib/investments/types";
+import type { InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
 const profileLabels: Record<RiskProfile, string> = {
   conservative: "Conservador",
@@ -57,7 +57,11 @@ function IdeaCard({ idea }: { idea: InvestmentIdea }) {
 
       <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-400">
         <p><strong className="text-zinc-200">Horizonte:</strong> {idea.horizon}</p>
-        <p className="mt-1"><strong className="text-zinc-200">DEGIRO:</strong> {idea.degiroNote}</p>
+        <p className="mt-2"><strong className="text-zinc-200">Personalização:</strong></p>
+        <ul className="mt-1 list-disc space-y-1 pl-5">
+          {idea.personalization.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <p className="mt-2"><strong className="text-zinc-200">DEGIRO:</strong> {idea.degiroNote}</p>
       </div>
     </article>
   );
@@ -67,7 +71,10 @@ export default function InvestmentsPage() {
   const [session, setSession] = useState<MarketSession>("europe-open");
   const [report, setReport] = useState<InvestmentReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [emailPreview, setEmailPreview] = useState<string>("");
+  const [settings, setSettings] = useState<PortfolioSettings | null>(null);
+  const [holdingsJson, setHoldingsJson] = useState("[]");
 
   async function loadReport(nextSession = session) {
     setLoading(true);
@@ -87,7 +94,34 @@ export default function InvestmentsPage() {
     setEmailPreview(data.email.text);
   }
 
+  async function loadSettings() {
+    const res = await fetch("/api/investments/settings", { cache: "no-store" });
+    const data = await res.json();
+    setSettings(data.settings);
+    setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
+  }
+
+  async function saveSettings() {
+    if (!settings) return;
+    setSavingSettings(true);
+    try {
+      const payload = { ...settings, holdings: JSON.parse(holdingsJson || "[]") };
+      const res = await fetch("/api/investments/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      setSettings(data.settings);
+      setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
+      await loadReport(session);
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   useEffect(() => {
+    loadSettings();
     loadReport("europe-open");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -147,11 +181,50 @@ export default function InvestmentsPage() {
           {report && <p className="text-sm text-zinc-500">Gerado: {generated}</p>}
         </section>
 
+        {settings && (
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">Personalização</p>
+                <h2 className="mt-1 text-3xl font-black">Portfolio & regras</h2>
+                <p className="mt-2 text-zinc-400">Estas regras ajustam o score: core ETF target, limite de stocks, exposição US/tech, fundo de emergência e contribuição mensal.</p>
+              </div>
+              <button onClick={saveSettings} className="rounded-xl bg-emerald-400 px-5 py-3 font-bold text-black disabled:opacity-50" disabled={savingSettings}>
+                {savingSettings ? "A guardar..." : "Guardar settings"}
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <label className="text-sm text-zinc-300">Investimento mensal (€)<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.monthlyContribution} onChange={(e) => setSettings({ ...settings, monthlyContribution: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Perfil preferido<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.preferredProfile} onChange={(e) => setSettings({ ...settings, preferredProfile: e.target.value as RiskProfile })}><option value="conservative">Conservador</option><option value="moderate">Moderado</option><option value="aggressive">Agressivo</option></select></label>
+              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.emergencyFundReady} onChange={(e) => setSettings({ ...settings, emergencyFundReady: e.target.checked })} /> Fundo de emergência pronto</label>
+              <label className="text-sm text-zinc-300">Core ETF target %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.coreEtfTargetPercent} onChange={(e) => setSettings({ ...settings, coreEtfTargetPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Satélite/stocks target %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.satelliteTargetPercent} onChange={(e) => setSettings({ ...settings, satelliteTargetPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Máx single stock %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSingleStockPercent} onChange={(e) => setSettings({ ...settings, maxSingleStockPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Máx sector/tech %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSectorPercent} onChange={(e) => setSettings({ ...settings, maxSectorPercent: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Máx US %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxUSPercent} onChange={(e) => setSettings({ ...settings, maxUSPercent: Number(e.target.value) })} /></label>
+              <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.preferAccumulatingEtfs} onChange={(e) => setSettings({ ...settings, preferAccumulatingEtfs: e.target.checked })} /> Preferir accumulating ETFs</label>
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <label className="text-sm text-zinc-300">Notas pessoais<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.notes} onChange={(e) => setSettings({ ...settings, notes: e.target.value })} /></label>
+              <label className="text-sm text-zinc-300">Holdings JSON<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} /></label>
+            </div>
+          </section>
+        )}
+
         {report && (
           <>
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6">
               <h2 className="text-2xl font-bold">{report.title}</h2>
               <p className="mt-1 text-zinc-400">{report.subtitle}</p>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4"><p className="text-xs uppercase text-zinc-500">Portfolio</p><p className="mt-1 text-xl font-bold">€{report.portfolioAnalysis.totalValue.toFixed(0)}</p></div>
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4"><p className="text-xs uppercase text-zinc-500">Core ETF</p><p className="mt-1 text-xl font-bold">{report.portfolioAnalysis.coreEtfPercent.toFixed(1)}%</p></div>
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4"><p className="text-xs uppercase text-zinc-500">Stocks</p><p className="mt-1 text-xl font-bold">{report.portfolioAnalysis.stockPercent.toFixed(1)}%</p></div>
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4"><p className="text-xs uppercase text-zinc-500">US / Tech</p><p className="mt-1 text-xl font-bold">{report.portfolioAnalysis.usTaggedPercent.toFixed(1)}% / {report.portfolioAnalysis.techTaggedPercent.toFixed(1)}%</p></div>
+              </div>
 
               <div className={`mt-4 rounded-2xl border p-4 text-sm ${report.dataFreshness.ok ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100" : "border-amber-500/30 bg-amber-500/10 text-amber-100"}`}>
                 <p><strong>Data freshness:</strong> {report.dataFreshness.ok ? "OK" : "degraded"}</p>

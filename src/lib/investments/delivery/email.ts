@@ -14,6 +14,7 @@ function ideaText(idea: InvestmentIdea) {
     `   Riscos: ${idea.risks.join("; ")}`,
     `   Horizonte: ${idea.horizon}`,
     `   Confiança: ${idea.confidence}`,
+    `   Personalização: ${idea.personalization.join("; ")}`,
     `   DEGIRO: ${idea.degiroNote}`,
   ].join("\n");
 }
@@ -76,7 +77,8 @@ export function formatInvestmentEmail(report: InvestmentReport) {
                       <p><strong>Tese:</strong> ${idea.thesis}</p>
                       <p><strong>Porquê agora:</strong> ${idea.whyNow.join("; ")}</p>
                       <p><strong>Riscos:</strong> ${idea.risks.join("; ")}</p>
-                      <p><strong>Horizonte:</strong> ${idea.horizon} · <strong>Confiança:</strong> ${idea.confidence}</p>
+                      <p><strong>Horizonte:</strong> ${idea.horizon} · <strong>Confiança:</strong> ${idea.confidence} · <strong>Score:</strong> ${idea.score}</p>
+                      <p><strong>Personalização:</strong> ${idea.personalization.join("; ")}</p>
                       <p><strong>DEGIRO:</strong> ${idea.degiroNote}</p>
                     </article>
                   `,

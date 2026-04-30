@@ -1,4 +1,13 @@
-import type { AssetCandidate, InvestmentIdea, MarketDataPoint, MarketSession, MarketSignal, RiskProfile } from "./types";
+import type {
+  AssetCandidate,
+  InvestmentIdea,
+  MarketDataPoint,
+  MarketSession,
+  MarketSignal,
+  PortfolioAnalysis,
+  PortfolioSettings,
+  RiskProfile,
+} from "./types";
 
 function confidence(score: number, data: MarketDataPoint): InvestmentIdea["confidence"] {
   if (data.error) return "low";
@@ -71,12 +80,75 @@ function sessionScore(asset: AssetCandidate, session: MarketSession) {
   return asset.sessions.includes(session) ? 12 : -100;
 }
 
+function holdingValue(settings: PortfolioSettings, ticker: string) {
+  const holding = settings.holdings.find((h) => h.ticker.toLowerCase() === ticker.toLowerCase());
+  if (!holding) return 0;
+  if (holding.currentValue !== undefined) return holding.currentValue;
+  if (holding.quantity !== undefined && holding.averagePrice !== undefined) return holding.quantity * holding.averagePrice;
+  return 0;
+}
+
+function personalizationScore(asset: AssetCandidate, settings: PortfolioSettings, analysis: PortfolioAnalysis) {
+  let score = 0;
+  const notes: string[] = [];
+  const total = analysis.totalValue;
+  const existingValue = holdingValue(settings, asset.ticker);
+  const existingPercent = total ? (existingValue / total) * 100 : 0;
+
+  if (!settings.emergencyFundReady && asset.type === "Stock") {
+    score -= 18;
+    notes.push("Emergency fund not ready: single stocks are penalised until basic safety buffer is confirmed.");
+  }
+
+  if (asset.type === "ETF UCITS" && analysis.coreEtfPercent < settings.coreEtfTargetPercent) {
+    score += 12;
+    notes.push("Core ETF allocation is below target, so broad UCITS ETFs get a boost.");
+  }
+
+  if (asset.type === "Stock" && analysis.stockPercent >= settings.satelliteTargetPercent) {
+    score -= 15;
+    notes.push("Satellite/single-stock exposure is already at or above target.");
+  }
+
+  if (asset.type === "Stock" && existingPercent >= settings.maxSingleStockPercent) {
+    score -= 25;
+    notes.push(`Existing ${asset.ticker} exposure is at/above max single-stock limit.`);
+  }
+
+  if (asset.tags.includes("us") && analysis.usTaggedPercent >= settings.maxUSPercent) {
+    score -= 10;
+    notes.push("US-tagged exposure is at/above configured max.");
+  }
+
+  if ((asset.tags.includes("tech") || asset.tags.includes("ai")) && analysis.techTaggedPercent >= settings.maxSectorPercent) {
+    score -= 12;
+    notes.push("Tech/AI exposure is at/above configured sector max.");
+  }
+
+  if (settings.preferAccumulatingEtfs && asset.type.includes("ETF")) {
+    score += 4;
+    notes.push("Preference for accumulating ETFs supports UCITS ETF candidates; still verify share class.");
+  }
+
+  if (settings.monthlyContribution > 0) {
+    notes.push(`Monthly contribution configured: ${settings.monthlyContribution.toFixed(0)} EUR.`);
+  } else {
+    score -= 10;
+    notes.push("No monthly contribution configured; treat as watchlist-only.");
+  }
+
+  if (!notes.length) notes.push("No portfolio-specific adjustment applied.");
+  return { score, notes };
+}
+
 export function scoreIdeas(params: {
   assets: AssetCandidate[];
   marketData: MarketDataPoint[];
   signals: MarketSignal[];
   profile: RiskProfile;
   session: MarketSession;
+  settings: PortfolioSettings;
+  analysis: PortfolioAnalysis;
 }): InvestmentIdea[] {
   const dataByLabel = new Map(params.marketData.map((point) => [point.label, point]));
 
@@ -92,6 +164,7 @@ export function scoreIdeas(params: {
         error: "Missing market data",
       } satisfies MarketDataPoint;
 
+      const personal = personalizationScore(asset, params.settings, params.analysis);
       const score = Math.max(
         0,
         Math.min(
@@ -100,7 +173,8 @@ export function scoreIdeas(params: {
             sessionScore(asset, params.session) +
             momentumScore(data, params.profile) +
             rangeScore(data, params.profile) +
-            tagNewsScore(asset, params.signals),
+            tagNewsScore(asset, params.signals) +
+            personal.score,
         ),
       );
 
@@ -128,6 +202,7 @@ export function scoreIdeas(params: {
         degiroNote: asset.degiroNote,
         score,
         data,
+        personalization: personal.notes,
       } satisfies InvestmentIdea;
     })
     .filter((idea) => idea.score > 0)

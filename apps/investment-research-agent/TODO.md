@@ -13,4 +13,7 @@
 - [ ] Add SMTP/Resend email sender
 - [ ] Add OpenClaw cron jobs for market-open reports
 - [ ] Add ChatGPT-session provider adapter if available locally
+- [x] Add portfolio/personalisation settings
+- [x] Add allocation analysis and score adjustments
+- [ ] Add portfolio import helper for DEGIRO exports
 - [ ] Track historical report performance

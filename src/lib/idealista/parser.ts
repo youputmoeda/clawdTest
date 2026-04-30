@@ -13,9 +13,13 @@ export function parseNaturalSearch(input: string): Partial<IdealistaFilters> {
   if (/comprar|compra|venda|buy/.test(text)) filters.operation = "comprar";
   if (/arrendar|alugar|renda|rentar|rent/.test(text)) filters.operation = "arrendar";
 
-  if (/quarto|room/.test(text)) filters.propertyType = "quartos";
-  else if (/garagem|garage/.test(text)) filters.propertyType = "garagens";
-  else if (/terreno|land/.test(text)) filters.propertyType = "terrenos";
+  const isLookingForRoom = /(?:^|\s)(quarto|room)(?:s|\s|$)/.test(text) && !/\bt\d\b|apartamento|casa|moradia|flat|apartment/.test(text);
+  const isLookingForGarage = /(?:^|\s)(garagem|garage)(?:s|\s|$)/.test(text) && !/com garagem|c\/ garagem|apartamento|casa|moradia|\bt\d\b/.test(text);
+  const isLookingForLand = /(?:^|\s)(terreno|land)(?:s|\s|$)/.test(text);
+
+  if (isLookingForRoom) filters.propertyType = "quartos";
+  else if (isLookingForGarage) filters.propertyType = "garagens";
+  else if (isLookingForLand) filters.propertyType = "terrenos";
   else filters.propertyType = "casas";
 
   const maxPriceMatch = text.match(/(?:até|ate|max(?:imo)?|menos de|under)\s*€?\s*([0-9 .]+)/i) || text.match(/([0-9 .]+)\s*€?\s*(?:máximo|max|por mês|\/mês)/i);

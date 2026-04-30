@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { parseDegiroPortfolioCsv } from "@/lib/investments/degiro";
 import type { Holding, InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
 const profileLabels: Record<RiskProfile, string> = {
@@ -216,7 +217,7 @@ export default function InvestmentsPage() {
 
   function importCsv() {
     if (!settings) return;
-    const parsed = parseDegiroCsv(csvImport);
+    const parsed = parseDegiroPortfolioCsv(csvImport);
     const holdings = [...settings.holdings, ...parsed];
     setSettings({ ...settings, holdings });
     setHoldingsJson(JSON.stringify(holdings, null, 2));

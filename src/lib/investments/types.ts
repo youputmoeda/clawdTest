@@ -13,6 +13,7 @@ export type InvestmentConfig = {
 
 export type Holding = {
   ticker: string;
+  isin?: string;
   name?: string;
   type: "ETF UCITS" | "Stock" | "Bond ETF UCITS" | "Cash-like ETF" | "Other";
   quantity?: number;

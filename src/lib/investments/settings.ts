@@ -7,6 +7,7 @@ const settingsPath = path.join(process.cwd(), "data", "investment-settings.json"
 
 const holdingSchema = z.object({
   ticker: z.string().min(1),
+  isin: z.string().optional(),
   name: z.string().optional(),
   type: z.enum(["ETF UCITS", "Stock", "Bond ETF UCITS", "Cash-like ETF", "Other"]),
   quantity: z.coerce.number().optional(),

@@ -79,3 +79,23 @@ DevMind should not invent João's experience. Skills and decisions should come f
 - inspected project files
 
 If evidence is missing, the AI should ask or inspect.
+
+## Multi-project hub mode
+
+This repo can act as the only GitHub repository I need access to. Other projects can stay private/local while DevMind captures their commits and exports portable memory into this repo.
+
+See: [`docs/multi-project-workflow.md`](./docs/multi-project-workflow.md)
+
+```bash
+# Register another local repo
+npm run devmind:register -- /absolute/path/to/project "Project Name" "React,TypeScript,.NET"
+
+# Install commit watcher into that repo
+npm run devmind:install-hook -- /absolute/path/to/project
+
+# Generate Cursor memory in that repo
+npm run devmind:cursor -- /absolute/path/to/project
+
+# Export all project memories into this hub repo
+npm run devmind:export
+```

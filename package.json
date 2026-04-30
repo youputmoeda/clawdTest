@@ -12,7 +12,9 @@
     "devmind:capture": "tsx scripts/capture-commit.ts",
     "devmind:install-hook": "tsx scripts/install-hook.ts",
     "devmind:cursor": "tsx scripts/generate-cursor-context.ts",
-    "devmind:seed": "tsx scripts/seed-profile.ts"
+    "devmind:seed": "tsx scripts/seed-profile.ts",
+    "devmind:register": "tsx scripts/register-project.ts",
+    "devmind:export": "tsx scripts/export-project-memory.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -1,5 +1,22 @@
-# DevMind Projects
+# memory/projects/
 
-This folder is a portable project-memory export. It lets one GitHub repo act as the hub for many local projects.
+This folder stores **portable exported project memory** so this single GitHub repo can act as a hub for multiple local/private projects.
 
-- [devmind](./devmind/memory.md) — 3 recent commits exported
+## Purpose
+
+It lets the assistant and AI tooling keep grounded context about projects that may live outside this repository.
+
+Typical contents include:
+
+- recent commit summaries;
+- project memory exports;
+- generated context notes;
+- links back to the source/local project.
+
+## Current exports
+
+- [devmind](./devmind/memory.md) — exported recent DevMind project memory
+
+## Why this exists
+
+The user may want one GitHub repo to be the assistant's visible workspace while other repos stay local or private. This folder is the bridge that makes that possible.

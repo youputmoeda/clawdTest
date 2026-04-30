@@ -1,13 +1,51 @@
-# Apps workspace
+# Apps
 
-This folder is where new projects/apps should be created when the assistant only has access to this single GitHub repository.
+This folder contains product-specific workspaces inside the `clawdTest` multi-project repo.
 
-Each project gets its own folder:
+The root Next.js app still lives in `src/`, but each project has its own folder here for:
 
-```txt
-apps/
-  devmind/          # optional future move of the hub app
-  my-new-app/       # project-specific source code
+- README / usage docs;
+- PROJECT context;
+- TODO tracking;
+- generated AI/Cursor context;
+- future project-specific source if it grows large enough to split out.
+
+## Current apps
+
+| App | Folder | Runtime route | Purpose |
+| --- | --- | --- | --- |
+| Investment Research Agent | `apps/investment-research-agent` | `/investments` | Daily investment research for Portugal/EU + DEGIRO |
+| Idealista Researcher | `apps/idealista-researcher` | `/idealista` | Idealista property search/export assistant |
+
+## How to run any current app
+
+From repo root:
+
+```bash
+npm install
+npm run dev
 ```
 
-For now, the DevMind hub app still lives at the repository root to avoid breaking the working MVP. New projects should go under `apps/<project-slug>/`.
+Then open the relevant route:
+
+```txt
+http://localhost:3000/investments
+http://localhost:3000/idealista
+```
+
+## Creating a new app
+
+```bash
+npm run project:new -- "Project Name" "Stack,List"
+```
+
+New app docs should explain:
+
+- what the app is;
+- what problem it solves;
+- routes/API routes;
+- how to run locally;
+- required environment variables;
+- folder structure;
+- known limitations;
+- next steps.

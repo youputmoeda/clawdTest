@@ -128,6 +128,7 @@ export default function InvestmentsPage() {
   const [session, setSession] = useState<MarketSession>("europe-open");
   const [people, setPeople] = useState<InvestmentPerson[]>([]);
   const [personId, setPersonId] = useState("joao");
+  const [newPersonName, setNewPersonName] = useState("");
   const [report, setReport] = useState<InvestmentReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -163,15 +164,18 @@ export default function InvestmentsPage() {
     setPeople(data.people ?? []);
   }
 
-  async function addGirlfriendProfile() {
+  async function addPersonProfile() {
+    const name = newPersonName.trim();
+    if (!name) return;
     const res = await fetch("/api/investments/people", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: "namorada", name: "Namorada", relationship: "partner" }),
+      body: JSON.stringify({ name }),
     });
     const data = await res.json();
     setPeople(data.people ?? []);
-    setPersonId("namorada");
+    setPersonId(data.person.id);
+    setNewPersonName("");
   }
 
   async function loadAllocationPlan() {
@@ -291,7 +295,8 @@ export default function InvestmentsPage() {
             <select className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-200" value={personId} onChange={(e) => setPersonId(e.target.value)}>
               {people.map((person) => <option key={person.id} value={person.id}>{person.name} ({person.id})</option>)}
             </select>
-            <button onClick={addGirlfriendProfile} className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-300">+ Namorada</button>
+            <input className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-200" placeholder="Nome da pessoa" value={newPersonName} onChange={(e) => setNewPersonName(e.target.value)} />
+            <button onClick={addPersonProfile} className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-zinc-300">+ Pessoa</button>
             <button
               onClick={() => switchSession("europe-open")}
               className={`rounded-xl px-5 py-3 font-semibold ${session === "europe-open" ? "bg-emerald-400 text-black" : "border border-zinc-800 bg-zinc-950 text-zinc-300"}`}

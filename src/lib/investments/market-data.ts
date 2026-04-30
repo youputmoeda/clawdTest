@@ -154,7 +154,7 @@ export async function fetchYahooMarketData(asset: AssetCandidate, cache?: Market
     } catch (officialErr) {
       if (provider === "yahoo") throw officialErr;
       const fallback = await fetchYahooMarketDataRaw(asset);
-      point = { ...fallback, source: `${fallback.source} (fallback after ${provider} failed: ${officialErr instanceof Error ? officialErr.message : "unknown error"})` };
+      point = { ...fallback, source: `${fallback.source} (${provider} fallback)` };
     }
     if (cache) cache[cacheKey] = point;
     return point;
@@ -163,7 +163,7 @@ export async function fetchYahooMarketData(asset: AssetCandidate, cache?: Market
       return {
         ...cached,
         source: `${cached.source} (stale cache fallback)`,
-        error: `Live fetch failed; using stale cache. ${err instanceof Error ? err.message : "Unknown error"}`,
+        error: "Live fetch failed; using stale cache.",
       };
     }
     return {

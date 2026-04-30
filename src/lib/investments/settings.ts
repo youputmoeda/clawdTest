@@ -1,9 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { z } from "zod";
+import { readJsonSetting, writeJsonSetting } from "./store";
 import type { Holding, PortfolioAnalysis, PortfolioSettings } from "./types";
 
-const settingsPath = path.join(process.cwd(), "data", "investment-settings.json");
+const SETTINGS_KEY = "investment-settings";
 
 const holdingSchema = z.object({
   ticker: z.string().min(1),
@@ -69,19 +68,13 @@ const msg = {
 } as const;
 
 export async function loadPortfolioSettings(): Promise<PortfolioSettings> {
-  try {
-    const raw = await fs.readFile(settingsPath, "utf8");
-    return portfolioSettingsSchema.parse(JSON.parse(raw));
-  } catch {
-    return defaultPortfolioSettings;
-  }
+  const stored = await readJsonSetting<unknown>(SETTINGS_KEY, defaultPortfolioSettings);
+  return portfolioSettingsSchema.parse(stored);
 }
 
 export async function savePortfolioSettings(input: unknown): Promise<PortfolioSettings> {
   const parsed = portfolioSettingsSchema.parse(input);
-  await fs.mkdir(path.dirname(settingsPath), { recursive: true });
-  await fs.writeFile(settingsPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
-  return parsed;
+  return writeJsonSetting(SETTINGS_KEY, parsed);
 }
 
 function valueOf(holding: Holding) {

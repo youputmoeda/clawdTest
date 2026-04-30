@@ -16,6 +16,9 @@ Local investment research dashboard and scheduled report generator for a Portuga
 - Conservative, moderate, aggressive profiles
 - ETFs UCITS + stocks, no crypto
 - Email-ready report preview
+- Live RSS/news ingestion
+- Live market data via Yahoo Finance chart API
+- Visible data freshness, sources, and confidence scoring
 
 ## Run
 

@@ -24,9 +24,18 @@ function IdeaCard({ idea }: { idea: InvestmentIdea }) {
           <h3 className="mt-1 text-xl font-bold text-zinc-50">{idea.ticker}</h3>
           <p className="text-sm text-zinc-400">{idea.name}</p>
         </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${confidenceClass[idea.confidence]}`}>
-          {idea.confidence} confidence
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${confidenceClass[idea.confidence]}`}>
+            {idea.confidence} confidence
+          </span>
+          <span className="text-xs text-zinc-500">score {idea.score}</span>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+        <p><strong className="text-zinc-100">Preço:</strong> {idea.data.regularMarketPrice ? `${idea.data.regularMarketPrice.toFixed(2)} ${idea.data.currency}` : "n/d"}</p>
+        <p className="mt-1"><strong className="text-zinc-100">Variação:</strong> {idea.data.changePercent !== undefined ? `${idea.data.changePercent.toFixed(2)}%` : "n/d"}</p>
+        <p className="mt-1"><strong className="text-zinc-100">Fonte:</strong> {idea.data.source}</p>
       </div>
 
       <p className="mt-4 text-sm leading-6 text-zinc-300"><strong className="text-zinc-100">Tese:</strong> {idea.thesis}</p>
@@ -143,6 +152,14 @@ export default function InvestmentsPage() {
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6">
               <h2 className="text-2xl font-bold">{report.title}</h2>
               <p className="mt-1 text-zinc-400">{report.subtitle}</p>
+
+              <div className={`mt-4 rounded-2xl border p-4 text-sm ${report.dataFreshness.ok ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100" : "border-amber-500/30 bg-amber-500/10 text-amber-100"}`}>
+                <p><strong>Data freshness:</strong> {report.dataFreshness.ok ? "OK" : "degraded"}</p>
+                <p className="mt-1"><strong>Fetched:</strong> {new Date(report.dataFreshness.fetchedAt).toLocaleString("pt-PT", { timeZone: "Europe/Lisbon" })}</p>
+                <p className="mt-1"><strong>Live sources:</strong> {report.dataFreshness.sourceCount}</p>
+                {!!report.dataFreshness.errors.length && <p className="mt-1"><strong>Errors:</strong> {report.dataFreshness.errors.join(" | ")}</p>}
+              </div>
+
               <div className="mt-5 grid gap-3 md:grid-cols-3">
                 {report.signals.map((signal) => (
                   <article key={signal.id} className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
@@ -152,9 +169,34 @@ export default function InvestmentsPage() {
                     </div>
                     <h3 className="mt-3 font-bold text-zinc-100">{signal.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-zinc-400">{signal.summary}</p>
-                    <p className="mt-3 text-xs text-zinc-600">{signal.source}</p>
+                    <p className="mt-3 text-xs text-zinc-600">{signal.source}{signal.publishedAt ? ` · ${signal.publishedAt}` : ""}</p>
                   </article>
                 ))}
+              </div>
+
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-zinc-800 bg-black/30">
+                <table className="min-w-full text-left text-sm text-zinc-300">
+                  <thead className="bg-zinc-950 text-zinc-500">
+                    <tr>
+                      <th className="p-3">Ticker</th>
+                      <th className="p-3">Preço</th>
+                      <th className="p-3">Variação</th>
+                      <th className="p-3">Moeda</th>
+                      <th className="p-3">Fonte</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.marketData.map((point) => (
+                      <tr key={point.symbol} className="border-t border-zinc-900">
+                        <td className="p-3 font-medium text-zinc-100">{point.label}</td>
+                        <td className="p-3">{point.regularMarketPrice !== undefined ? point.regularMarketPrice.toFixed(2) : "n/d"}</td>
+                        <td className="p-3">{point.changePercent !== undefined ? `${point.changePercent.toFixed(2)}%` : "n/d"}</td>
+                        <td className="p-3">{point.currency}</td>
+                        <td className="p-3">{point.error ? `${point.source} (${point.error})` : point.source}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </section>
 

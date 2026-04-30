@@ -10,10 +10,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const session = searchParams.get("session") || "europe-open";
   const parsed = schema.parse({ session });
-  return NextResponse.json(generateInvestmentReport(parsed.session));
+  return NextResponse.json(await generateInvestmentReport(parsed.session));
 }
 
 export async function POST(req: Request) {
   const body = schema.parse(await req.json().catch(() => ({})));
-  return NextResponse.json(generateInvestmentReport(body.session));
+  return NextResponse.json(await generateInvestmentReport(body.session));
 }

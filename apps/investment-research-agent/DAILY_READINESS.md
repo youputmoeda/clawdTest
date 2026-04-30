@@ -21,7 +21,7 @@ Current status: **MVP dashboard works, but it is not ready for real daily invest
 
 ### 1. Real market data
 
-Current ideas are seeded/static research logic. Before daily use, the agent needs live/recent data:
+Status: **partially done**. The MVP now pulls live market data via Yahoo Finance chart API for the tracked asset universe. Before daily use at higher confidence, it still needs broader coverage, caching policy, and stronger provider redundancy.
 
 - ETF prices and returns
 - stock prices and returns
@@ -41,7 +41,7 @@ Candidate providers:
 
 ### 2. Real news ingestion
 
-Need RSS/API ingestion and deduplication.
+Status: **partially done**. The MVP now pulls live RSS feeds (ECB, Fed, Yahoo Finance, MarketWatch where available), deduplicates them, filters crypto, and ranks by session relevance. Before daily production use, it still needs more source coverage and better source-health handling.
 
 Initial free sources:
 

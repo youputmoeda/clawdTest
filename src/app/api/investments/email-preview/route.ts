@@ -11,12 +11,12 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const session = searchParams.get("session") || "europe-open";
   const parsed = schema.parse({ session });
-  const report = generateInvestmentReport(parsed.session);
+  const report = await generateInvestmentReport(parsed.session);
   return NextResponse.json({ report, email: formatInvestmentEmail(report), delivery: "preview-only" });
 }
 
 export async function POST(req: Request) {
   const body = schema.parse(await req.json().catch(() => ({})));
-  const report = generateInvestmentReport(body.session);
+  const report = await generateInvestmentReport(body.session);
   return NextResponse.json({ report, email: formatInvestmentEmail(report), delivery: "preview-only" });
 }

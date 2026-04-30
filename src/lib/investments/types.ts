@@ -19,6 +19,37 @@ export type MarketSignal = {
   impact: "low" | "medium" | "high";
   source: string;
   url?: string;
+  publishedAt?: string;
+};
+
+export type MarketDataPoint = {
+  symbol: string;
+  label: string;
+  type: "ETF UCITS" | "Stock" | "Bond ETF UCITS" | "Cash-like ETF" | "Index" | "FX";
+  currency: string;
+  regularMarketPrice?: number;
+  previousClose?: number;
+  changePercent?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  dayRange?: string;
+  source: string;
+  fetchedAt: string;
+  error?: string;
+};
+
+export type AssetCandidate = {
+  ticker: string;
+  yahooSymbol: string;
+  name: string;
+  type: "ETF UCITS" | "Stock" | "Bond ETF UCITS" | "Cash-like ETF";
+  profiles: RiskProfile[];
+  sessions: MarketSession[];
+  thesis: string;
+  risks: string[];
+  horizon: string;
+  degiroNote: string;
+  tags: string[];
 };
 
 export type InvestmentIdea = {
@@ -33,6 +64,8 @@ export type InvestmentIdea = {
   horizon: string;
   confidence: "low" | "medium" | "high";
   degiroNote: string;
+  score: number;
+  data: MarketDataPoint;
 };
 
 export type ProfileReport = {
@@ -49,7 +82,14 @@ export type InvestmentReport = {
   subtitle: string;
   config: InvestmentConfig;
   signals: MarketSignal[];
+  marketData: MarketDataPoint[];
   profiles: ProfileReport[];
+  dataFreshness: {
+    ok: boolean;
+    fetchedAt: string;
+    sourceCount: number;
+    errors: string[];
+  };
   notes: string[];
   disclaimer: string;
 };

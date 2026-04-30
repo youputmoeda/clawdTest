@@ -132,6 +132,7 @@ export default function InvestmentsPage() {
   const [emailPreview, setEmailPreview] = useState<string>("");
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const [allocationPlan, setAllocationPlan] = useState<AllocationPlan | null>(null);
+  const [performanceHistory, setPerformanceHistory] = useState<any[]>([]);
   const [holdingsJson, setHoldingsJson] = useState("[]");
   const [csvImport, setCsvImport] = useState("");
 
@@ -159,6 +160,12 @@ export default function InvestmentsPage() {
     setAllocationPlan(data.plan);
   }
 
+  async function loadPerformanceHistory() {
+    const res = await fetch("/api/investments/report-performance", { cache: "no-store" });
+    const data = await res.json();
+    setPerformanceHistory(data.performance ?? []);
+  }
+
   async function loadSettings() {
     const res = await fetch("/api/investments/settings", { cache: "no-store" });
     const data = await res.json();
@@ -182,6 +189,7 @@ export default function InvestmentsPage() {
       setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
       await loadAllocationPlan();
       await loadReport(session);
+      await loadPerformanceHistory();
     } finally {
       setSavingSettings(false);
     }
@@ -190,6 +198,7 @@ export default function InvestmentsPage() {
   useEffect(() => {
     loadSettings();
     loadReport("europe-open");
+    loadPerformanceHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -393,6 +402,37 @@ export default function InvestmentsPage() {
                 </ul>
               </div>
             )}
+          </section>
+        )}
+
+        {!!performanceHistory.length && (
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm uppercase tracking-[0.28em] text-emerald-300">Report history</p>
+                <h2 className="mt-1 text-3xl font-black">Decision tracking</h2>
+                <p className="mt-2 text-zinc-400">Compara ideias antigas com preços actuais para perceber se o agente está a ajudar ou a inventar confiança.</p>
+              </div>
+              <button onClick={loadPerformanceHistory} className="rounded-xl border border-zinc-700 px-4 py-3 text-sm text-zinc-300">Refresh</button>
+            </div>
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-zinc-800 bg-black/30">
+              <table className="min-w-full text-left text-sm text-zinc-300">
+                <thead className="bg-zinc-950 text-zinc-500"><tr><th className="p-3">Date</th><th className="p-3">Session</th><th className="p-3">Profile</th><th className="p-3">Ticker</th><th className="p-3">Entry</th><th className="p-3">Now</th><th className="p-3">Return</th></tr></thead>
+                <tbody>
+                  {performanceHistory.slice(0, 12).flatMap((entry) => entry.performance.map((p: any) => (
+                    <tr key={`${entry.id}-${p.profile}-${p.ticker}`} className="border-t border-zinc-900">
+                      <td className="p-3">{new Date(entry.generatedAt).toLocaleDateString(locale)}</td>
+                      <td className="p-3">{entry.session}</td>
+                      <td className="p-3">{p.profile}</td>
+                      <td className="p-3 font-medium text-zinc-100">{p.ticker}</td>
+                      <td className="p-3">{p.entryPrice ? p.entryPrice.toFixed(2) : "n/d"}</td>
+                      <td className="p-3">{p.currentPrice ? p.currentPrice.toFixed(2) : "n/d"}</td>
+                      <td className={`p-3 ${p.returnPercent >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{p.returnPercent !== undefined ? `${p.returnPercent.toFixed(2)}%` : p.status}</td>
+                    </tr>
+                  )))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 

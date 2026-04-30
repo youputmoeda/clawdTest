@@ -14,7 +14,8 @@
     "devmind:cursor": "tsx scripts/generate-cursor-context.ts",
     "devmind:seed": "tsx scripts/seed-profile.ts",
     "devmind:register": "tsx scripts/register-project.ts",
-    "devmind:export": "tsx scripts/export-project-memory.ts"
+    "devmind:export": "tsx scripts/export-project-memory.ts",
+    "project:new": "tsx scripts/new-project.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

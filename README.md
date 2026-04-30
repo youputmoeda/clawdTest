@@ -99,3 +99,21 @@ npm run devmind:cursor -- /absolute/path/to/project
 # Export all project memories into this hub repo
 npm run devmind:export
 ```
+
+## Single-repo multi-project workspace
+
+This repository is also the workspace for any new project João wants built when the assistant only has access to this repo.
+
+New projects go under:
+
+```txt
+apps/<project-slug>/
+```
+
+Create a new project workspace:
+
+```bash
+npm run project:new -- "My New Project" "Next.js,TypeScript,PostgreSQL"
+```
+
+See: [`docs/repo-structure.md`](./docs/repo-structure.md)

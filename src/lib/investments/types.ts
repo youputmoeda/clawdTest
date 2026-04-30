@@ -42,6 +42,9 @@ export type PortfolioSettings = {
   maxSectorPercent: number;
   maxUSPercent: number;
   preferAccumulatingEtfs: boolean;
+  targetAmount: number;
+  targetDate: string;
+  priority: "grow" | "reduce-risk" | "emergency-fund" | "reach-target";
   notes: string;
   holdings: Holding[];
 };

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { parseDegiroPortfolioCsv } from "@/lib/investments/degiro";
 import { getLabels } from "@/lib/investments/i18n";
+import type { ActionPlan } from "@/lib/investments/action-plan";
 import type { AllocationPlan } from "@/lib/investments/allocation";
 import type { Holding, InvestmentIdea, InvestmentPerson, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
@@ -135,6 +136,7 @@ export default function InvestmentsPage() {
   const [emailPreview, setEmailPreview] = useState<string>("");
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const [allocationPlan, setAllocationPlan] = useState<AllocationPlan | null>(null);
+  const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null);
   const [performanceHistory, setPerformanceHistory] = useState<any[]>([]);
   const [holdingsJson, setHoldingsJson] = useState("[]");
   const [csvImport, setCsvImport] = useState("");
@@ -184,6 +186,12 @@ export default function InvestmentsPage() {
     setAllocationPlan(data.plan);
   }
 
+  async function loadActionPlan() {
+    const res = await fetch(`/api/investments/action-plan?personId=${personId}`, { cache: "no-store" });
+    const data = await res.json();
+    setActionPlan(data.actionPlan);
+  }
+
   async function loadPerformanceHistory() {
     const res = await fetch(`/api/investments/report-performance?personId=${personId}`, { cache: "no-store" });
     const data = await res.json();
@@ -196,6 +204,7 @@ export default function InvestmentsPage() {
     setSettings(data.settings);
     setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
     await loadAllocationPlan();
+    await loadActionPlan();
   }
 
   async function saveSettings() {
@@ -212,6 +221,7 @@ export default function InvestmentsPage() {
       setSettings(data.settings);
       setHoldingsJson(JSON.stringify(data.settings.holdings ?? [], null, 2));
       await loadAllocationPlan();
+      await loadActionPlan();
       await loadReport(session);
       await loadPerformanceHistory();
     } finally {
@@ -337,6 +347,9 @@ export default function InvestmentsPage() {
               <label className="text-sm text-zinc-300">{t.monthlyInvestment}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.monthlyContribution} onChange={(e) => setSettings({ ...settings, monthlyContribution: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">{t.preferredProfile}<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.preferredProfile} onChange={(e) => setSettings({ ...settings, preferredProfile: e.target.value as RiskProfile })}><option value="conservative">{t.conservative}</option><option value="moderate">{t.moderate}</option><option value="aggressive">{t.aggressive}</option></select></label>
               <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.emergencyFundReady} onChange={(e) => setSettings({ ...settings, emergencyFundReady: e.target.checked })} /> {t.emergencyFundReady}</label>
+              <label className="text-sm text-zinc-300">Target amount (€)<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.targetAmount} onChange={(e) => setSettings({ ...settings, targetAmount: Number(e.target.value) })} /></label>
+              <label className="text-sm text-zinc-300">Target date<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="date" value={settings.targetDate} onChange={(e) => setSettings({ ...settings, targetDate: e.target.value })} /></label>
+              <label className="text-sm text-zinc-300">Priority<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.priority} onChange={(e) => setSettings({ ...settings, priority: e.target.value as PortfolioSettings["priority"] })}><option value="grow">Grow portfolio</option><option value="reduce-risk">Reduce risk</option><option value="emergency-fund">Build emergency fund</option><option value="reach-target">Reach target</option></select></label>
               <label className="text-sm text-zinc-300">{t.coreTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.coreEtfTargetPercent} onChange={(e) => setSettings({ ...settings, coreEtfTargetPercent: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">{t.satelliteTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.satelliteTargetPercent} onChange={(e) => setSettings({ ...settings, satelliteTargetPercent: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">{t.maxSingleStock}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.maxSingleStockPercent} onChange={(e) => setSettings({ ...settings, maxSingleStockPercent: Number(e.target.value) })} /></label>
@@ -393,6 +406,29 @@ export default function InvestmentsPage() {
               <summary className="cursor-pointer text-sm font-semibold text-zinc-300">{t.advancedJson}</summary>
               <textarea className="mt-3 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} />
             </details>
+          </section>
+        )}
+
+        {actionPlan && (
+          <section className="rounded-3xl border border-cyan-500/30 bg-cyan-950/20 p-6">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Action TODO List</p>
+                <h2 className="mt-1 text-3xl font-black">Goal-first plan</h2>
+                <p className="mt-2 max-w-4xl text-zinc-300">Current €{actionPlan.currentValue.toFixed(2)} → target €{actionPlan.targetAmount.toFixed(0)} by {actionPlan.targetDate}. Required pace: ~€{actionPlan.requiredMonthlyContribution.toFixed(0)}/month.</p>
+              </div>
+              <button onClick={loadActionPlan} className="rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-semibold text-cyan-200">Recalcular TODO</button>
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              {actionPlan.todos.map((todo, index) => (
+                <article key={`${todo.title}-${index}`} className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">{todo.kind}</p>
+                  <h3 className="mt-1 text-xl font-bold text-zinc-50">{todo.title}</h3>
+                  {todo.amount !== undefined && <p className="mt-2 text-2xl font-black text-cyan-300">€{todo.amount.toFixed(2)}</p>}
+                  <p className="mt-3 text-sm leading-6 text-zinc-300">{todo.reason}</p>
+                </article>
+              ))}
+            </div>
           </section>
         )}
 

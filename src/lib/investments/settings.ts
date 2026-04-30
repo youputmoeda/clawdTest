@@ -31,6 +31,9 @@ export const portfolioSettingsSchema = z.object({
   maxSectorPercent: z.coerce.number().min(0).max(100).default(35),
   maxUSPercent: z.coerce.number().min(0).max(100).default(70),
   preferAccumulatingEtfs: z.coerce.boolean().default(true),
+  targetAmount: z.coerce.number().min(0).default(10000),
+  targetDate: z.string().default("2027-12-31"),
+  priority: z.enum(["grow", "reduce-risk", "emergency-fund", "reach-target"]).default("reach-target"),
   notes: z.string().default(""),
   holdings: z.array(holdingSchema).default([]),
 });
@@ -46,6 +49,9 @@ export const defaultPortfolioSettings: PortfolioSettings = {
   maxSectorPercent: 35,
   maxUSPercent: 70,
   preferAccumulatingEtfs: true,
+  targetAmount: 10000,
+  targetDate: "2027-12-31",
+  priority: "reach-target",
   notes: "Default placeholder settings. Replace with real portfolio before relying on personalised scoring.",
   holdings: [],
 };

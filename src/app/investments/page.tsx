@@ -426,6 +426,7 @@ export default function InvestmentsPage() {
                     <h3 className="mt-3 font-bold text-zinc-100">{signal.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-zinc-400">{signal.summary}</p>
                     <p className="mt-3 text-xs text-zinc-600">{signal.source}{signal.publishedAt ? ` · ${signal.publishedAt}` : ""}</p>
+                    <p className="mt-2 text-xs text-zinc-500">Impact: {signal.portfolioImpact ?? "none"} · Score: {signal.relevanceScore ?? "n/d"}{signal.affectedHoldings?.length ? ` · Holdings: ${signal.affectedHoldings.join(", ")}` : ""}{signal.affectedTags?.length ? ` · Tags: ${signal.affectedTags.join(", ")}` : ""}</p>
                   </article>
                 ))}
               </div>

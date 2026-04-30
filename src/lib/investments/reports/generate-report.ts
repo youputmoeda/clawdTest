@@ -12,7 +12,7 @@ export async function generateInvestmentReport(session: MarketSession): Promise<
   const sessionAssets = assetUniverse.filter((asset) => asset.sessions.includes(session));
   const settings = await loadPortfolioSettings();
   const portfolioAnalysis = analysePortfolio(settings);
-  const [signals, marketData] = await Promise.all([fetchMarketNews(session), fetchMarketData(sessionAssets)]);
+  const [signals, marketData] = await Promise.all([fetchMarketNews(session, settings.holdings), fetchMarketData(sessionAssets)]);
   const errors = [
     ...marketData.filter((point) => point.error).map((point) => `${point.label}: ${point.error}`),
     ...signals.filter((signal) => /unavailable|error|failed/i.test(signal.title)).map((signal) => `${signal.source}: ${signal.summary}`),

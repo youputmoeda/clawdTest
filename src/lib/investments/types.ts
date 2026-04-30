@@ -59,6 +59,10 @@ export type MarketSignal = {
   source: string;
   url?: string;
   publishedAt?: string;
+  relevanceScore?: number;
+  affectedHoldings?: string[];
+  affectedTags?: string[];
+  portfolioImpact?: "none" | "low" | "medium" | "high";
 };
 
 export type MarketDataPoint = {

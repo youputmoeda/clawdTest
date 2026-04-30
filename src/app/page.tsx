@@ -3,18 +3,55 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+type HomeCommit = {
+  id: string;
+  shortHash: string;
+  message: string;
+  committedAt: Date;
+  tags: unknown;
+  repository: { name: string };
+};
+
+type HomeSkill = {
+  id: string;
+  name: string;
+  years: number | null;
+};
+
+type HomeRepo = {
+  id: string;
+  name: string;
+  path: string;
+  _count: { commits: number };
+};
+
+type HomeDecision = {
+  id: string;
+  title: string;
+  description: string;
+};
+
 function JsonPill({ children }: { children: React.ReactNode }) {
   return <span className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-300">{children}</span>;
 }
 
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
 export default async function Home() {
-  const [profile, skills, repos, commits, decisions] = await Promise.all([
+  const [profile, rawSkills, rawRepos, rawCommits, rawDecisions] = await Promise.all([
     prisma.userProfile.findFirst(),
     prisma.skill.findMany({ orderBy: [{ years: "desc" }, { name: "asc" }], take: 24 }),
     prisma.repository.findMany({ include: { _count: { select: { commits: true } } }, orderBy: { updatedAt: "desc" }, take: 8 }),
     prisma.commit.findMany({ include: { repository: true }, orderBy: { committedAt: "desc" }, take: 10 }),
     prisma.decision.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
+
+  const skills = rawSkills as HomeSkill[];
+  const repos = rawRepos as HomeRepo[];
+  const commits = rawCommits as HomeCommit[];
+  const decisions = rawDecisions as HomeDecision[];
 
   return (
     <main className="min-h-screen bg-black text-zinc-100">
@@ -43,13 +80,13 @@ export default async function Home() {
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold">Recent commits</h2>
             <div className="mt-4 space-y-3">
-              {commits.length ? commits.map((commit) => (
+              {commits.length ? commits.map((commit: HomeCommit) => (
                 <article key={commit.id} className="rounded-xl border border-zinc-800 bg-black p-4">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
                     <span>{commit.repository.name}</span><span>•</span><code>{commit.shortHash}</code><span>•</span><span>{commit.committedAt.toLocaleString()}</span>
                   </div>
                   <h3 className="mt-2 font-medium">{commit.message}</h3>
-                  <div className="mt-3 flex flex-wrap gap-2">{(commit.tags as string[]).map((tag) => <JsonPill key={tag}>#{tag}</JsonPill>)}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">{stringArray(commit.tags).map((tag: string) => <JsonPill key={tag}>#{tag}</JsonPill>)}</div>
                 </article>
               )) : <p className="text-zinc-500">No commits captured yet. Install a hook with <code>npm run devmind:install-hook -- /path/to/repo</code>.</p>}
             </div>
@@ -58,7 +95,7 @@ export default async function Home() {
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <h2 className="text-xl font-semibold">Grounded skills</h2>
             <div className="mt-4 flex flex-wrap gap-2">
-              {skills.map((skill) => <JsonPill key={skill.id}>{skill.name}{skill.years ? ` · ${skill.years}y` : ""}</JsonPill>)}
+              {skills.map((skill: HomeSkill) => <JsonPill key={skill.id}>{skill.name}{skill.years ? ` · ${skill.years}y` : ""}</JsonPill>)}
             </div>
           </section>
         </div>
@@ -67,13 +104,13 @@ export default async function Home() {
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <h2 className="text-xl font-semibold">Repositories</h2>
             <div className="mt-4 space-y-2">
-              {repos.length ? repos.map((repo) => <div key={repo.id} className="rounded-xl bg-black p-4"><div className="font-medium">{repo.name}</div><div className="text-sm text-zinc-500">{repo.path} · {repo._count.commits} commits</div></div>) : <p className="text-zinc-500">No repos registered yet.</p>}
+              {repos.length ? repos.map((repo: HomeRepo) => <div key={repo.id} className="rounded-xl bg-black p-4"><div className="font-medium">{repo.name}</div><div className="text-sm text-zinc-500">{repo.path} · {repo._count.commits} commits</div></div>) : <p className="text-zinc-500">No repos registered yet.</p>}
             </div>
           </section>
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <h2 className="text-xl font-semibold">Grounding rules / decisions</h2>
             <div className="mt-4 space-y-2">
-              {decisions.map((d) => <div key={d.id} className="rounded-xl bg-black p-4"><div className="font-medium">{d.title}</div><p className="text-sm text-zinc-400">{d.description}</p></div>)}
+              {decisions.map((decision: HomeDecision) => <div key={decision.id} className="rounded-xl bg-black p-4"><div className="font-medium">{decision.title}</div><p className="text-sm text-zinc-400">{decision.description}</p></div>)}
             </div>
           </section>
         </div>

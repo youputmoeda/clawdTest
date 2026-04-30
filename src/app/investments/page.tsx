@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
+import type { Holding, InvestmentIdea, InvestmentReport, MarketSession, PortfolioSettings, RiskProfile } from "@/lib/investments/types";
 
 const profileLabels: Record<RiskProfile, string> = {
   conservative: "Conservador",
@@ -14,6 +14,60 @@ const confidenceClass = {
   medium: "border-sky-500/40 bg-sky-500/10 text-sky-200",
   high: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
 };
+
+function inferHoldingType(ticker: string): Holding["type"] {
+  const t = ticker.toUpperCase();
+  if (["VWCE", "IWDA", "SXR8", "EXSA", "IUIT"].includes(t)) return "ETF UCITS";
+  if (["AGGH"].includes(t)) return "Bond ETF UCITS";
+  if (["XEON"].includes(t)) return "Cash-like ETF";
+  if (t) return "Stock";
+  return "Other";
+}
+
+function inferTags(ticker: string, type: Holding["type"]) {
+  const t = ticker.toUpperCase();
+  const tags = new Set<string>();
+  if (type.includes("ETF")) tags.add("core");
+  if (["SXR8", "IUIT", "MSFT", "BRK.B", "NVDA"].includes(t)) tags.add("us");
+  if (["IUIT", "MSFT", "NVDA", "ASML"].includes(t)) tags.add("tech");
+  if (["IUIT", "MSFT", "NVDA", "ASML"].includes(t)) tags.add("ai");
+  if (["VWCE", "IWDA"].includes(t)) tags.add("global");
+  return Array.from(tags);
+}
+
+function parseDegiroCsv(input: string): Holding[] {
+  const lines = input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const delimiter = lines[0].includes(";") ? ";" : ",";
+  const headers = lines[0].split(delimiter).map((h) => h.trim().toLowerCase());
+  const rows = lines.slice(1);
+
+  function pick(cols: string[], names: string[]) {
+    for (const name of names) {
+      const idx = headers.findIndex((h) => h.includes(name));
+      if (idx >= 0 && cols[idx]) return cols[idx].replace(/^\"|\"$/g, "").trim();
+    }
+    return "";
+  }
+
+  function num(value: string) {
+    const cleaned = value.replace(/\s/g, "").replace(/\./g, "").replace(",", ".").replace(/[^0-9.-]/g, "");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  return rows.map((line) => {
+    const cols = line.split(delimiter).map((c) => c.trim());
+    const ticker = pick(cols, ["ticker", "símbolo", "symbol", "isin", "produto", "product"]).toUpperCase();
+    const name = pick(cols, ["nome", "name", "produto", "product"]);
+    const currentValue = num(pick(cols, ["valor", "value", "total", "montante"]));
+    const quantity = num(pick(cols, ["quantidade", "quantity", "qtd"]));
+    const averagePrice = num(pick(cols, ["preço", "price", "average", "médio", "medio"]));
+    const currency = pick(cols, ["moeda", "currency"]) || "EUR";
+    const type = inferHoldingType(ticker || name);
+    return { ticker: ticker || name.slice(0, 12).toUpperCase(), name, type, quantity, averagePrice, currentValue, currency, tags: inferTags(ticker || name, type) } satisfies Holding;
+  }).filter((holding) => holding.ticker);
+}
 
 function IdeaCard({ idea }: { idea: InvestmentIdea }) {
   return (
@@ -75,6 +129,7 @@ export default function InvestmentsPage() {
   const [emailPreview, setEmailPreview] = useState<string>("");
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const [holdingsJson, setHoldingsJson] = useState("[]");
+  const [csvImport, setCsvImport] = useState("");
 
   async function loadReport(nextSession = session) {
     setLoading(true);
@@ -134,6 +189,37 @@ export default function InvestmentsPage() {
   function switchSession(next: MarketSession) {
     setSession(next);
     loadReport(next);
+  }
+
+  function updateHolding(index: number, patch: Partial<Holding>) {
+    if (!settings) return;
+    const holdings = [...settings.holdings];
+    holdings[index] = { ...holdings[index], ...patch };
+    setSettings({ ...settings, holdings });
+    setHoldingsJson(JSON.stringify(holdings, null, 2));
+  }
+
+  function addHolding() {
+    if (!settings) return;
+    const holding: Holding = { ticker: "VWCE", name: "", type: "ETF UCITS", currentValue: 0, currency: "EUR", tags: ["core", "global"] };
+    const holdings = [...settings.holdings, holding];
+    setSettings({ ...settings, holdings });
+    setHoldingsJson(JSON.stringify(holdings, null, 2));
+  }
+
+  function removeHolding(index: number) {
+    if (!settings) return;
+    const holdings = settings.holdings.filter((_, i) => i !== index);
+    setSettings({ ...settings, holdings });
+    setHoldingsJson(JSON.stringify(holdings, null, 2));
+  }
+
+  function importCsv() {
+    if (!settings) return;
+    const parsed = parseDegiroCsv(csvImport);
+    const holdings = [...settings.holdings, ...parsed];
+    setSettings({ ...settings, holdings });
+    setHoldingsJson(JSON.stringify(holdings, null, 2));
   }
 
   return (
@@ -208,8 +294,52 @@ export default function InvestmentsPage() {
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               <label className="text-sm text-zinc-300">Notas pessoais<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.notes} onChange={(e) => setSettings({ ...settings, notes: e.target.value })} /></label>
-              <label className="text-sm text-zinc-300">Holdings JSON<textarea className="mt-1 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} /></label>
+              <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-zinc-100">Import DEGIRO CSV</p>
+                    <p className="text-xs text-zinc-500">Cola export CSV/semicolon. Parser é tolerante e tenta inferir ticker/tipo/tags.</p>
+                  </div>
+                  <button onClick={importCsv} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-sm text-emerald-200">Importar</button>
+                </div>
+                <textarea className="mt-3 min-h-24 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs text-zinc-300" value={csvImport} onChange={(e) => setCsvImport(e.target.value)} placeholder="Produto;Ticker;Quantidade;Preço médio;Valor;Moeda" />
+              </div>
             </div>
+
+            <div className="mt-6 rounded-2xl border border-zinc-800 bg-black/30 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-zinc-100">Holdings</p>
+                  <p className="text-xs text-zinc-500">Editor visual — já não precisas mexer em JSON para o básico.</p>
+                </div>
+                <button onClick={addHolding} className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-semibold text-black">Adicionar holding</button>
+              </div>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full text-left text-sm text-zinc-300">
+                  <thead className="text-xs uppercase text-zinc-500">
+                    <tr><th className="p-2">Ticker</th><th className="p-2">Nome</th><th className="p-2">Tipo</th><th className="p-2">Valor €</th><th className="p-2">Tags</th><th className="p-2"></th></tr>
+                  </thead>
+                  <tbody>
+                    {settings.holdings.map((holding, index) => (
+                      <tr key={`${holding.ticker}-${index}`} className="border-t border-zinc-900">
+                        <td className="p-2"><input className="w-28 rounded-lg border border-zinc-800 bg-black p-2" value={holding.ticker} onChange={(e) => updateHolding(index, { ticker: e.target.value.toUpperCase(), tags: inferTags(e.target.value, holding.type) })} /></td>
+                        <td className="p-2"><input className="w-56 rounded-lg border border-zinc-800 bg-black p-2" value={holding.name ?? ""} onChange={(e) => updateHolding(index, { name: e.target.value })} /></td>
+                        <td className="p-2"><select className="rounded-lg border border-zinc-800 bg-black p-2" value={holding.type} onChange={(e) => updateHolding(index, { type: e.target.value as Holding["type"], tags: inferTags(holding.ticker, e.target.value as Holding["type"]) })}><option>ETF UCITS</option><option>Stock</option><option>Bond ETF UCITS</option><option>Cash-like ETF</option><option>Other</option></select></td>
+                        <td className="p-2"><input className="w-28 rounded-lg border border-zinc-800 bg-black p-2" type="number" value={holding.currentValue ?? 0} onChange={(e) => updateHolding(index, { currentValue: Number(e.target.value) })} /></td>
+                        <td className="p-2"><input className="w-48 rounded-lg border border-zinc-800 bg-black p-2" value={(holding.tags ?? []).join(",")} onChange={(e) => updateHolding(index, { tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })} /></td>
+                        <td className="p-2"><button onClick={() => removeHolding(index)} className="rounded-lg border border-rose-500/40 px-3 py-2 text-rose-200">Remover</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!settings.holdings.length && <p className="py-6 text-center text-zinc-500">Sem holdings ainda. Adiciona manualmente ou cola CSV da DEGIRO.</p>}
+              </div>
+            </div>
+
+            <details className="mt-4 rounded-2xl border border-zinc-800 bg-black/30 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-300">JSON avançado</summary>
+              <textarea className="mt-3 min-h-32 w-full rounded-xl border border-zinc-800 bg-black p-3 font-mono text-xs" value={holdingsJson} onChange={(e) => setHoldingsJson(e.target.value)} />
+            </details>
           </section>
         )}
 

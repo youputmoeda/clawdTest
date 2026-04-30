@@ -15,5 +15,6 @@
 - [ ] Add ChatGPT-session provider adapter if available locally
 - [x] Add portfolio/personalisation settings
 - [x] Add allocation analysis and score adjustments
-- [ ] Add portfolio import helper for DEGIRO exports
+- [x] Add portfolio import helper for DEGIRO exports
+- [x] Add visual holdings editor
 - [ ] Track historical report performance

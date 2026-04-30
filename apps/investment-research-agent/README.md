@@ -21,6 +21,8 @@ Local investment research dashboard and scheduled report generator for a Portuga
 - Visible data freshness, sources, and confidence scoring
 - Portfolio/personalisation settings
 - Allocation-aware scoring adjustments
+- Visual holdings editor
+- Basic DEGIRO CSV paste/import helper
 
 ## Run
 

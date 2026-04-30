@@ -16,7 +16,12 @@ async function main() {
   const repoPath = path.resolve(repoPathArg);
   const git = simpleGit(repoPath);
   const root = (await git.revparse(["--show-toplevel"])).trim();
-  const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim().catch(() => null);
+  let branch: string | null = null;
+  try {
+    branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+  } catch {
+    branch = null;
+  }
   const name = process.argv[3] || path.basename(root);
   const stack = parseStack(process.argv[4]);
 

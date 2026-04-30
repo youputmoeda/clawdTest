@@ -15,6 +15,11 @@ Expo/native mobile can come later if we need push notifications or native UX. Fo
 
 ```txt
 DATABASE_URL=postgresql://...
+INVESTMENTS_AUTH_USER=<choose-user>
+INVESTMENTS_AUTH_PASSWORD=<strong-password>
+MARKET_DATA_PROVIDER=yahoo|twelvedata|finnhub
+TWELVE_DATA_API_KEY=<optional-if-provider-twelvedata>
+FINNHUB_API_KEY=<optional-if-provider-finnhub>
 ```
 
 The app now stores investment settings and market-data cache through `AppSetting` when `DATABASE_URL` is available. If DB is unavailable, it falls back to local `data/*.json`, which is fine for local dev but not robust for Vercel.
@@ -68,9 +73,9 @@ data/investment-settings.json
 - [x] DEGIRO CSV import works for João's current export format
 - [x] Monthly allocation plan exists
 - [x] pt-PT/en-GB UI preference exists
-- [ ] Add official market data provider
-- [ ] Add auth before public deployment
-- [ ] Add report history
+- [x] Add official market data provider abstraction (Twelve Data/Finnhub configurable, Yahoo fallback)
+- [x] Add Basic Auth protection for `/investments` and `/api/investments/*`
+- [x] Add report history summaries
 - [ ] Add email/cron delivery after provider choice (Resend/SendGrid)
 
 ## Deployment recommendation

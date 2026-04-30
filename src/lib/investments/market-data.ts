@@ -5,6 +5,8 @@ const YAHOO_CHART_BASE = "https://query1.finance.yahoo.com/v8/finance/chart";
 const CACHE_KEY = "investment-market-data-cache";
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
+type MarketDataProvider = "yahoo" | "twelvedata" | "finnhub";
+
 type MarketDataCache = Record<string, MarketDataPoint>;
 
 type YahooChartResponse = {
@@ -41,6 +43,60 @@ async function readCache() {
 
 async function writeCache(cache: MarketDataCache) {
   return writeJsonSetting(CACHE_KEY, cache);
+}
+
+function configuredProvider(): MarketDataProvider {
+  const provider = (process.env.MARKET_DATA_PROVIDER || "yahoo").toLowerCase();
+  if (provider === "twelvedata" || provider === "finnhub") return provider;
+  return "yahoo";
+}
+
+async function fetchTwelveDataRaw(asset: AssetCandidate): Promise<MarketDataPoint> {
+  const key = process.env.TWELVE_DATA_API_KEY;
+  if (!key) throw new Error("TWELVE_DATA_API_KEY is not configured");
+  const fetchedAt = new Date().toISOString();
+  const symbol = encodeURIComponent(asset.yahooSymbol || asset.ticker);
+  const res = await fetch(`https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${key}`, { next: { revalidate: 300 } });
+  if (!res.ok) throw new Error(`Twelve Data HTTP ${res.status}`);
+  const json = await res.json() as any;
+  if (json.status === "error" || json.code) throw new Error(json.message || "Twelve Data quote error");
+  const price = Number(json.close || json.price);
+  const previousClose = Number(json.previous_close);
+  return {
+    symbol: asset.yahooSymbol,
+    label: asset.ticker,
+    type: asset.type,
+    currency: json.currency || "unknown",
+    regularMarketPrice: Number.isFinite(price) ? price : undefined,
+    previousClose: Number.isFinite(previousClose) ? previousClose : undefined,
+    changePercent: Number.isFinite(Number(json.percent_change)) ? Number(json.percent_change) : pct(price, previousClose),
+    dayRange: json.low && json.high ? `${json.low} - ${json.high}` : undefined,
+    source: "Twelve Data quote API",
+    fetchedAt,
+  };
+}
+
+async function fetchFinnhubRaw(asset: AssetCandidate): Promise<MarketDataPoint> {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) throw new Error("FINNHUB_API_KEY is not configured");
+  const fetchedAt = new Date().toISOString();
+  const symbol = encodeURIComponent(asset.ticker.replace(".", "-"));
+  const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${key}`, { next: { revalidate: 300 } });
+  if (!res.ok) throw new Error(`Finnhub HTTP ${res.status}`);
+  const json = await res.json() as any;
+  if (!json || json.c === 0) throw new Error("Finnhub quote missing/unsupported symbol");
+  return {
+    symbol: asset.yahooSymbol,
+    label: asset.ticker,
+    type: asset.type,
+    currency: "unknown",
+    regularMarketPrice: json.c,
+    previousClose: json.pc,
+    changePercent: pct(json.c, json.pc),
+    dayRange: json.l && json.h ? `${json.l} - ${json.h}` : undefined,
+    source: "Finnhub quote API",
+    fetchedAt,
+  };
 }
 
 async function fetchYahooMarketDataRaw(asset: AssetCandidate): Promise<MarketDataPoint> {
@@ -89,7 +145,17 @@ export async function fetchYahooMarketData(asset: AssetCandidate, cache?: Market
   if (cached && isFresh(cached)) return { ...cached, source: `${cached.source} (cache)` };
 
   try {
-    const point = await fetchYahooMarketDataRaw(asset);
+    const provider = configuredProvider();
+    let point: MarketDataPoint;
+    try {
+      if (provider === "twelvedata") point = await fetchTwelveDataRaw(asset);
+      else if (provider === "finnhub") point = await fetchFinnhubRaw(asset);
+      else point = await fetchYahooMarketDataRaw(asset);
+    } catch (officialErr) {
+      if (provider === "yahoo") throw officialErr;
+      const fallback = await fetchYahooMarketDataRaw(asset);
+      point = { ...fallback, source: `${fallback.source} (fallback after ${provider} failed: ${officialErr instanceof Error ? officialErr.message : "unknown error"})` };
+    }
     if (cache) cache[cacheKey] = point;
     return point;
   } catch (err) {

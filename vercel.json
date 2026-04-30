@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/investments/daily-run?personId=joao&session=europe-open",
+      "schedule": "30 7 * * 1-5"
+    },
+    {
+      "path": "/api/investments/daily-run?personId=joao&session=us-open",
+      "schedule": "0 14 * * 1-5"
+    }
+  ]
+}

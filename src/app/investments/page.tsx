@@ -349,6 +349,7 @@ export default function InvestmentsPage() {
               <label className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300"><input type="checkbox" checked={settings.emergencyFundReady} onChange={(e) => setSettings({ ...settings, emergencyFundReady: e.target.checked })} /> {t.emergencyFundReady}</label>
               <label className="text-sm text-zinc-300">Target amount (€)<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.targetAmount} onChange={(e) => setSettings({ ...settings, targetAmount: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">Target date<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="date" value={settings.targetDate} onChange={(e) => setSettings({ ...settings, targetDate: e.target.value })} /></label>
+              <label className="text-sm text-zinc-300">Expected annual return %<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.expectedAnnualReturn} onChange={(e) => setSettings({ ...settings, expectedAnnualReturn: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">Priority<select className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" value={settings.priority} onChange={(e) => setSettings({ ...settings, priority: e.target.value as PortfolioSettings["priority"] })}><option value="grow">Grow portfolio</option><option value="reduce-risk">Reduce risk</option><option value="emergency-fund">Build emergency fund</option><option value="reach-target">Reach target</option></select></label>
               <label className="text-sm text-zinc-300">{t.coreTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.coreEtfTargetPercent} onChange={(e) => setSettings({ ...settings, coreEtfTargetPercent: Number(e.target.value) })} /></label>
               <label className="text-sm text-zinc-300">{t.satelliteTarget}<input className="mt-1 w-full rounded-xl border border-zinc-800 bg-black p-3" type="number" value={settings.satelliteTargetPercent} onChange={(e) => setSettings({ ...settings, satelliteTargetPercent: Number(e.target.value) })} /></label>
@@ -415,9 +416,15 @@ export default function InvestmentsPage() {
               <div>
                 <p className="text-sm uppercase tracking-[0.28em] text-cyan-300">Action TODO List</p>
                 <h2 className="mt-1 text-3xl font-black">Goal-first plan</h2>
-                <p className="mt-2 max-w-4xl text-zinc-300">Current €{actionPlan.currentValue.toFixed(2)} → target €{actionPlan.targetAmount.toFixed(0)} by {actionPlan.targetDate}. Required pace: ~€{actionPlan.requiredMonthlyContribution.toFixed(0)}/month.</p>
+                <p className="mt-2 max-w-4xl text-zinc-300">Current €{actionPlan.currentValue.toFixed(2)} → target €{actionPlan.targetAmount.toFixed(0)} by {actionPlan.targetDate}. Expected return {actionPlan.expectedAnnualReturn.toFixed(1)}%/year. Projected: €{actionPlan.projectedValueAtTargetDate.toFixed(0)}. Required pace: ~€{actionPlan.requiredMonthlyContribution.toFixed(0)}/month.</p>
               </div>
               <button onClick={loadActionPlan} className="rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-semibold text-cyan-200">Recalcular TODO</button>
+            </div>
+            <div className="mt-4 rounded-2xl border border-zinc-800 bg-black/30 p-4 text-sm text-zinc-400">
+              <p className="font-semibold text-zinc-100">Assumptions</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {actionPlan.assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}
+              </ul>
             </div>
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               {actionPlan.todos.map((todo, index) => (

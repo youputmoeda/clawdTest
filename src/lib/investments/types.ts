@@ -44,6 +44,7 @@ export type PortfolioSettings = {
   preferAccumulatingEtfs: boolean;
   targetAmount: number;
   targetDate: string;
+  expectedAnnualReturn: number;
   priority: "grow" | "reduce-risk" | "emergency-fund" | "reach-target";
   notes: string;
   holdings: Holding[];
